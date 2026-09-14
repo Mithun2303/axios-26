@@ -52,12 +52,38 @@ const DAY_START = 8 * 60;
 const DAY_END = 18 * 60;
 const DAY_RANGE = DAY_END - DAY_START;
 const DAY_COL_WIDTH = 1450;
-const MIN_BLOCK_WIDTH = 92;
+const MIN_BLOCK_WIDTH = 108;
+const ROW_H = 64; // px, one sub-row's height inside a lane
+const ROW_GAP = 8; // px, gap between stacked sub-rows in the same lane
 const hours = Array.from({ length: (DAY_END - DAY_START) / 60 + 1 }, (_, i) => DAY_START / 60 + i);
 const fmtHour = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
 
 const entriesFor = (day: string, cat: string) => schedule.filter((s) => s.day === day && s.category === cat);
 const catSlug = (cat: string) => cat.toLowerCase().replace(/\s+/g, '-');
+
+// --- overlap packing: greedy interval-graph sweep, on TRUE end times (not the
+// min-width-inflated on-screen width) so a short block never falsely collides with its
+// neighbour just because MIN_BLOCK_WIDTH padded it out visually. Each entry gets the
+// lowest sub-row index whose last-placed end time is already <= this entry's start —
+// the standard "minimum number of rooms" packing — so overlapping events stack into
+// separate rows instead of covering each other, and non-overlapping ones share a row.
+type Packed = ScheduleEntry & { subRow: number };
+
+const packLane = (entries: ScheduleEntry[]): { items: Packed[]; subRowCount: number } => {
+	const sorted = [...entries].sort((a, b) => a.startMinutes - b.startMinutes);
+	const rowEnds: number[] = []; // rowEnds[i] = end time of the last event placed in sub-row i
+	const items: Packed[] = sorted.map((entry) => {
+		let row = rowEnds.findIndex((end) => end <= entry.startMinutes);
+		if (row === -1) {
+			row = rowEnds.length;
+			rowEnds.push(entry.endMinutes);
+		} else {
+			rowEnds[row] = entry.endMinutes;
+		}
+		return { ...entry, subRow: row };
+	});
+	return { items, subRowCount: Math.max(1, rowEnds.length) };
+};
 
 interface Props {
 	// renders a second, inert copy of just the schedule grid — no ids (so the script below,
@@ -81,7 +107,7 @@ const { preview = false } = Astro.props;
 	)}
 
 	<div class="tm-pin" id={preview ? undefined : 'tm-pin'}>
-		<div class="tm-stage">
+		<div class:list={['tm-stage', !preview && 'tm-stage-entering']} id={preview ? undefined : 'tm-stage'}>
 			<div class="tm-header container">
 				<span class="tm-header-label">Scroll to move through time</span>
 				<span class="tm-readout" id={preview ? undefined : 'tm-readout'}>{days[0]} &middot; {fmtHour(DAY_START / 60)}</span>
@@ -96,48 +122,75 @@ const { preview = false } = Astro.props;
 							<div class="tm-day-label">{day}</div>
 							<div class="tm-axis" aria-hidden="true">
 								{hours.map((h) => (
-									<span>{fmtHour(h)}</span>
+									<span style={`left:${((h * 60 - DAY_START) / DAY_RANGE) * DAY_COL_WIDTH}px`}>{fmtHour(h)}</span>
 								))}
 							</div>
+							{/* thin loader track, one per day, directly under the axis — its fill width is
+							    driven each frame by the script below from the same progress value that
+							    moves the hand, so it reads as "time already scrolled past" for this day. */}
+							<div class="tm-day-loader" aria-hidden="true">
+								<div class="tm-day-loader-fill" data-day={day}></div>
+							</div>
 							<div class="tm-lanes">
-								{categories.map((cat) => (
-									<div class="tm-lane" data-cat={catSlug(cat)}>
-										<span class="tm-lane-label">{cat}</span>
-										<div
-											class="tm-lane-track"
-											style={`background-size: ${(60 / DAY_RANGE) * DAY_COL_WIDTH}px 100%;`}
-										>
-											{entriesFor(day, cat).map((entry) => {
-												const left = ((entry.startMinutes - DAY_START) / DAY_RANGE) * DAY_COL_WIDTH;
-												const width = Math.max(
-													((entry.endMinutes - entry.startMinutes) / DAY_RANGE) * DAY_COL_WIDTH,
-													MIN_BLOCK_WIDTH
-												);
-												return (
-													<button
-														type="button"
-														class="tm-block"
-														data-cat={catSlug(cat)}
-														style={`left:${left}px; width:${width}px;`}
-														data-key={entry.key}
-														data-event={entry.eventKey}
-														data-icon={entry.icon}
-														data-name={entry.name}
-														data-category={entry.category}
-														data-round={entry.round}
-														data-round-title={entry.roundTitle}
-														data-day={entry.day}
-														data-time={`${entry.startLabel}–${entry.endLabel}`}
-														data-loc={entry.location}
-													>
-														<span class="tm-block-name">{entry.name}</span>
-														<span class="tm-block-meta">{entry.startLabel}&ndash;{entry.endLabel} &middot; {entry.location}</span>
-													</button>
-												);
-											})}
+								{categories.map((cat) => {
+									const { items, subRowCount } = packLane(entriesFor(day, cat));
+									const trackHeight = subRowCount * ROW_H + (subRowCount - 1) * ROW_GAP;
+									return (
+										<div class="tm-lane" data-cat={catSlug(cat)}>
+											<span class="tm-lane-label">{cat}</span>
+											<div
+												class="tm-lane-track"
+												style={`height:${trackHeight}px; background-size: ${(60 / DAY_RANGE) * DAY_COL_WIDTH}px 100%;`}
+											>
+												{items.map((entry) => {
+													const left = ((entry.startMinutes - DAY_START) / DAY_RANGE) * DAY_COL_WIDTH;
+													const width = Math.max(
+														((entry.endMinutes - entry.startMinutes) / DAY_RANGE) * DAY_COL_WIDTH,
+														MIN_BLOCK_WIDTH
+													);
+													const top = entry.subRow * (ROW_H + ROW_GAP);
+													// multi-row lanes give each block less vertical room — drop the meta
+													// line there rather than let it clip; the modal already repeats
+													// time + location in full.
+													const compact = subRowCount > 1;
+													return (
+														<button
+															type="button"
+															class:list={['tm-block', compact && 'tm-block-compact']}
+															data-cat={catSlug(cat)}
+															style={`left:${left}px; width:${width}px; top:${top}px; height:${ROW_H}px;`}
+															data-key={entry.key}
+															data-event={entry.eventKey}
+															data-icon={entry.icon}
+															data-name={entry.name}
+															data-category={entry.category}
+															data-round={entry.round}
+															data-round-title={entry.roundTitle}
+															data-day={entry.day}
+															data-time={`${entry.startLabel}–${entry.endLabel}`}
+															data-loc={entry.location}
+														>
+															{/* --- glass banner: --before paints the "banner" (a per-category
+															    gradient placeholder today; swap for a real image later by
+															    giving this element a background-image instead — nothing
+															    else in this stack needs to change), the frosted layer above
+															    it blurs that backdrop, and content sits on top so text never
+															    blurs with it. --- */}
+															<span class="tm-block-banner" aria-hidden="true"></span>
+															<span class="tm-block-glass" aria-hidden="true"></span>
+															<span class="tm-block-content">
+																<span class="tm-block-name">{entry.name}</span>
+																{!compact && (
+																	<span class="tm-block-meta">{entry.startLabel}&ndash;{entry.endLabel} &middot; {entry.location}</span>
+																)}
+															</span>
+														</button>
+													);
+												})}
+											</div>
 										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						</div>
 					))}
@@ -230,14 +283,27 @@ const { preview = false } = Astro.props;
 	const root = document.querySelector<HTMLElement>('.tm:not(.tm-preview)');
 
 	const pin = document.getElementById('tm-pin');
+	const stage = document.getElementById('tm-stage');
 	const track = document.getElementById('tm-track');
 	const hand = document.getElementById('tm-hand');
 	const readout = document.getElementById('tm-readout');
 
+	// kill the CSS pre-state (see .tm-stage-entering below) as the very first thing this
+	// script does — if anything below throws, the section still ends up at full scale
+	// instead of stuck at 0.32 forever.
+	stage?.classList.remove('tm-stage-entering');
+
 	const DAY_START = 8 * 60;
 	const DAY_RANGE = 600;
+	const DAY_COL_WIDTH = 1450; // must match the frontmatter's DAY_COL_WIDTH
 	const dayLabels = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day-label') ?? []).map((el) => el.textContent || '');
 	const numDays = Math.max(1, dayLabels.length);
+	// one thin loader-fill per day (queried by index, in day order — same order
+	// .tm-day-label above and the frontmatter's days.map both render in)
+	const loaderFills = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day-loader-fill') ?? []);
+	const loaderByDay: HTMLElement[] = dayLabels.map((_, i) =>
+		loaderFills.find((el) => el.dataset.day === dayLabels[i])
+	).filter((el): el is HTMLElement => !!el);
 
 	const fmt = (mins: number) => {
 		const h = Math.floor(mins / 60) % 24;
@@ -247,28 +313,37 @@ const { preview = false } = Astro.props;
 
 	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	// entrance: this section starts scaled down — as if it's still the last thing sitting
-	// inside the grid above — and grows to full size as you scroll into it. Pinned (a real
-	// GSAP pin, not a manual position hack) for that stretch, so the growth reads as
-	// controlled rather than a passive scroll reveal. The instant it reaches full scale,
-	// GSAP's own pin release hands scroll back to normal — no jump, no DOM move, because
-	// this section never leaves its natural place in the page; only its transform changes.
+	// entrance: the stage starts scaled down — as if it's still the last thing sitting
+	// inside the grid above — and grows to full size as you scroll into it. Scaled on
+	// .tm-stage itself (the sticky element), NOT on `root` or any other ancestor of it:
+	// ScrollTrigger's pin sets the pinned element to position:fixed, and a transform on
+	// an ancestor of a sticky element independently breaks its sticky behaviour. Either
+	// one, with .tm-stage sticky underneath, was the source of the snap/misalignment at
+	// the handoff into the horizontal scrub below. No pin needed here at all — native
+	// sticky already holds .tm-stage in place while its own transform animates.
 	const isDesktop = window.matchMedia('(min-width: 901px)').matches;
-	if (root && !prefersReducedMotion && isDesktop) {
-		gsap.set(root, { scale: 0.32, transformOrigin: '50% 50%' });
+	if (root && stage && !prefersReducedMotion && isDesktop) {
 		ScrollTrigger.create({
 			trigger: root,
 			start: 'top bottom',
-			end: () => '+=' + window.innerHeight,
-			pin: true,
+			end: 'top top',
 			scrub: 1,
-			invalidateOnRefresh: true,
-			onUpdate: (self) => gsap.set(root, { scale: gsap.utils.interpolate(0.32, 1, self.progress) }),
+			onUpdate: (self) => gsap.set(stage, { scale: gsap.utils.interpolate(0.32, 1, self.progress) }),
 		});
+	} else if (stage) {
+		gsap.set(stage, { clearProps: 'transform' });
 	}
 
 	let scrollDistance = 0;
-	const HAND_INSET = 40;
+	// .tm-track has responsive left padding (clamp(1.25rem, 4vw, 3rem)) that the axis,
+	// loader and blocks all sit inside — measured live rather than duplicated as a magic
+	// number here, so it can't silently drift out of sync with the CSS again. Read once:
+	// it only changes on resize, and measure() below is already called on resize.
+	let trackPaddingLeft = 0;
+	// px offset from the left edge of .tm-track's content box to the left edge of day
+	// i's column — each .tm-day is DAY_COL_WIDTH wide, so day i starts at i * DAY_COL_WIDTH,
+	// plus the track's own left padding.
+	const dayOffsetPx = (i: number) => trackPaddingLeft + i * DAY_COL_WIDTH;
 
 	const measure = () => {
 		if (!pin || !track) return;
@@ -276,6 +351,7 @@ const { preview = false } = Astro.props;
 		const vw = window.innerWidth;
 		scrollDistance = Math.max(0, track.scrollWidth - vw);
 		pin.style.height = `${vh + scrollDistance}px`;
+		trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
 	};
 
 	const update = () => {
@@ -286,26 +362,48 @@ const { preview = false } = Astro.props;
 		let progress = total > 0 ? -rect.top / total : 0;
 		progress = Math.min(1, Math.max(0, progress));
 
-		track.style.transform = `translateX(${-progress * scrollDistance}px)`;
+		const trackOffsetPx = progress * scrollDistance;
+		track.style.transform = `translateX(${-trackOffsetPx}px)`;
 
-		if (hand) {
-			const vw = window.innerWidth;
-			const travel = Math.max(0, vw - HAND_INSET * 2);
-			hand.style.transform = `translateX(${HAND_INSET + progress * travel}px)`;
-		}
+		const totalMinutesScrubbed = progress * DAY_RANGE * numDays;
+		const dayIndex = Math.min(numDays - 1, Math.floor(totalMinutesScrubbed / DAY_RANGE));
+		const minuteOfDay = DAY_START + (totalMinutesScrubbed - dayIndex * DAY_RANGE);
 
 		if (readout) {
-			const totalMinutesScrubbed = progress * DAY_RANGE * numDays;
-			const dayIndex = Math.min(numDays - 1, Math.floor(totalMinutesScrubbed / DAY_RANGE));
-			const minuteOfDay = DAY_START + (totalMinutesScrubbed - dayIndex * DAY_RANGE);
 			readout.textContent = `${dayLabels[dayIndex] || `Day ${dayIndex + 1}`} · ${fmt(minuteOfDay)}`;
+		}
+
+		// "now", in the same track-local px the axis/blocks/loader all use: the current
+		// day's column offset plus how far into that day's DAY_COL_WIDTH we've scrubbed.
+		const nowPx = dayOffsetPx(dayIndex) + (minuteOfDay - DAY_START) * (DAY_COL_WIDTH / DAY_RANGE);
+
+		// the hand is drawn in viewport space, so convert track-local "now" to a viewport
+		// x by subtracting the track's current scroll offset — this is what keeps it
+		// exactly over the loader's leading edge and the axis mark for "now" instead of
+		// sweeping independently across the full viewport width.
+		if (hand) {
+			hand.style.transform = `translateX(${nowPx - trackOffsetPx}px)`;
+		}
+
+		// loader fill: each day's bar is clamped to its own [0,1] segment of the global
+		// progress — full once the hand has moved past that whole day, still empty for a
+		// day the hand hasn't reached yet. Uses the same nowPx math as the hand above, so
+		// the fill's right edge and the hand line always land on the same px.
+		for (let i = 0; i < numDays; i++) {
+			const dayProgress = Math.min(1, Math.max(0, totalMinutesScrubbed / DAY_RANGE - i));
+			const el = loaderByDay[i];
+			if (el) el.style.width = `${dayProgress * DAY_COL_WIDTH}px`;
 		}
 	};
 
 	if (!prefersReducedMotion) {
 		measure();
 		update();
-		document.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+		// driven by GSAP's own ticker rather than a scroll listener firing its own rAF:
+		// one read-and-write per animation frame, in the same frame GSAP is already
+		// ticking, instead of a queue of scroll-event callbacks that can pile up and
+		// race against the entrance scale tween above.
+		gsap.ticker.add(update);
 		window.addEventListener('resize', () => {
 			measure();
 			update();
@@ -392,6 +490,18 @@ const { preview = false } = Astro.props;
 		flex-direction: column;
 		justify-content: center;
 		overflow: hidden;
+		transform-origin: 50% 50%;
+	}
+
+	/* pre-state for the entrance scale, present before the deferred script runs so the
+	   stage never flashes full-size then snaps to 0.32. The script removes this class as
+	   its first statement (see the top of the <script> below), so a later error in that
+	   script can't leave the section stuck scaled down. Scoped to match exactly the
+	   conditions the script itself checks before animating. */
+	@media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
+		.tm:not(.tm-preview) .tm-stage-entering {
+			transform: scale(0.32);
+		}
 	}
 
 	/* the preview instance never runs the pin/scrub script above (it has no ids for that
@@ -481,16 +591,78 @@ const { preview = false } = Astro.props;
 		margin-bottom: 0.9rem;
 	}
 
+	/* relative + absolutely-placed labels (left set inline per hour, matching the same
+	   DAY_COL_WIDTH math the blocks below use) instead of space-between, which put label
+	   edges rather than centers at the axis ends — drifting by up to a full label width
+	   against the blocks' true px positions. */
 	.tm-axis {
-		display: flex;
-		justify-content: space-between;
-		padding-bottom: 0.5rem;
-		margin-bottom: 0.6rem;
-		border-bottom: 1px solid var(--line);
+		position: relative;
+		z-index: 3;
+		height: 1em;
+		padding-bottom: 0.7rem;
 		font-family: var(--font-body);
 		font-size: 0.68rem;
 		letter-spacing: 0.04em;
 		color: var(--ink-faint);
+	}
+
+	/* z-index above the hand (z-index:4 has its glow, this needs to clear label text
+	   specifically — see the backdrop on the span below) plus a solid backdrop behind
+	   each label: the hand line and its blurred box-shadow pass directly behind this
+	   row, and without a backdrop the glow visually washed out whichever digits it
+	   happened to cross. */
+	.tm-axis span {
+		position: absolute;
+		z-index: 5;
+		top: 0;
+		padding: 0 0.3em;
+		background: var(--void);
+		transform: translateX(-50%);
+		white-space: nowrap;
+	}
+
+	.tm-axis span:first-child {
+		transform: translateX(0);
+	}
+
+	.tm-axis span:last-child {
+		transform: translateX(-100%);
+	}
+
+	/* --- thin loader track under the axis: a slim line that fills gold left-to-right as
+	   you scroll through the day, its fill width set every frame in the script from the
+	   same progress value that drives the hand. Reads as a progress bar for "how much of
+	   this day you've scrolled past", not a tall wash across the lanes. --- */
+	.tm-day-loader {
+		position: relative;
+		height: 2px;
+		margin-bottom: 0.9rem;
+		background: var(--line);
+		border-radius: 2px;
+		overflow: visible;
+	}
+
+	.tm-day-loader-fill {
+		position: absolute;
+		inset: 0 auto 0 0;
+		width: 0;
+		border-radius: 2px;
+		background: linear-gradient(90deg, color-mix(in srgb, var(--gold-bright) 35%, transparent), var(--gold-bright));
+		box-shadow: 0 0 10px color-mix(in srgb, var(--gold-bright) 70%, transparent), 0 0 2px var(--gold-bright);
+	}
+
+	/* a small bright head at the fill's leading edge, like a loader's cursor */
+	.tm-day-loader-fill::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		right: 0;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--gold-bright);
+		box-shadow: 0 0 8px 2px color-mix(in srgb, var(--gold-bright) 80%, transparent);
+		transform: translate(50%, -50%);
 	}
 
 	.tm-lanes {
@@ -528,37 +700,86 @@ const { preview = false } = Astro.props;
 
 	.tm-lane-track {
 		position: relative;
-		height: 4.4rem;
 		border-radius: 8px;
 		background-color: rgba(255, 255, 255, 0.015);
-		background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px);
-		background-repeat: repeat-y;
+		/* plain single-line gradient tiled by the inline background-size (one line per
+		   hour) with repeat-x — the previous repeating-linear-gradient had a 1px period,
+		   so it painted ~145 stripes per tile instead of one line, and repeat-y meant the
+		   tile never repeated across the track's width at all. */
+		background-image: linear-gradient(90deg, var(--line) 0 1px, transparent 1px);
+		background-repeat: repeat-x;
+		overflow: hidden;
 	}
 
 	.tm-block {
 		position: absolute;
-		top: 6px;
-		bottom: 6px;
+		z-index: 1;
 		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		gap: 0.2rem;
-		padding: 0.5rem 0.7rem;
-		border-radius: 6px;
-		border: 1px solid var(--cat-accent);
-		background: color-mix(in srgb, var(--cat-accent) 12%, var(--panel-solid));
+		border-radius: 10px;
+		border: 1px solid color-mix(in srgb, var(--cat-accent) 65%, transparent);
 		color: var(--ink);
 		text-align: left;
 		cursor: pointer;
 		overflow: hidden;
 		font-family: var(--font-body);
-		transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+		isolation: isolate;
+		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+		transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
 	}
 
 	.tm-block:hover,
 	.tm-block:focus-visible {
-		background: color-mix(in srgb, var(--cat-accent) 26%, var(--panel-solid));
-		transform: translateY(-2px);
+		transform: translateY(-3px);
+		border-color: var(--cat-accent);
+		box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--cat-accent) 40%, transparent);
+	}
+
+	/* layer 1: the "banner" seen through the glass. A saturated, oversized per-category
+	   gradient placeholder today — swap this element's background for
+	   `url(...)` (e.g. from a new data-banner attribute) to drop in a real photo later;
+	   nothing else in this stack changes. Oversized (120%) and offset so the frosted
+	   layer above has real detail to blur — a backdrop-filter over a flat, same-size
+	   fill has nothing to soften and reads as a plain tint. */
+	.tm-block-banner {
+		position: absolute;
+		inset: -10% -10%;
+		background:
+			radial-gradient(65% 85% at 20% 10%, color-mix(in srgb, var(--cat-accent) 95%, white 5%), transparent 55%),
+			radial-gradient(60% 70% at 85% 90%, color-mix(in srgb, var(--cat-accent) 70%, transparent), transparent 60%),
+			conic-gradient(from 200deg at 50% 40%, color-mix(in srgb, var(--cat-accent) 45%, transparent), transparent 40%),
+			linear-gradient(155deg, color-mix(in srgb, var(--cat-accent) 55%, var(--panel-solid)) 0%, var(--panel-solid) 80%);
+	}
+
+	/* layer 2: the glass itself, blurred on a CHILD of .tm-block (never on .tm-block or
+	   .tm-lane-track directly — backdrop-filter opens a new stacking/containing context,
+	   the same class of hazard that broke the sticky stage before this pass). Heavily
+	   frosted and desaturated so the banner glows through softly, with a bright
+	   diagonal sheen and a glassy top edge / darker foot so it reads as a physical pane
+	   standing off the banner rather than a flat tint. */
+	.tm-block-glass {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(115deg, rgba(255, 255, 255, 0.16) 0%, transparent 22%, transparent 78%, rgba(255, 255, 255, 0.05) 100%),
+			color-mix(in srgb, var(--panel-solid) 46%, transparent);
+		backdrop-filter: blur(14px) saturate(1.6) brightness(1.05);
+		-webkit-backdrop-filter: blur(14px) saturate(1.6) brightness(1.05);
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.3),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+			inset 0 -18px 24px -16px rgba(0, 0, 0, 0.65);
+	}
+
+	/* layer 3: content, above the blur so text stays crisp */
+	.tm-block-content {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 0.2rem;
+		width: 100%;
+		padding: 0.55rem 0.75rem;
 	}
 
 	.tm-block-name {
@@ -567,6 +788,7 @@ const { preview = false } = Astro.props;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 	}
 
 	.tm-block-meta {
@@ -575,6 +797,16 @@ const { preview = false } = Astro.props;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	/* multi-sub-row lanes: less vertical room per block, so the meta line is dropped in
+	   markup (see the `compact` check in the frontmatter) and the name centers alone */
+	.tm-block-compact .tm-block-content {
+		padding: 0.4rem 0.65rem;
+	}
+
+	.tm-block-compact .tm-block-name {
+		font-size: 0.74rem;
 	}
 
 	/* --- mobile / reduced-motion fallback --- */
