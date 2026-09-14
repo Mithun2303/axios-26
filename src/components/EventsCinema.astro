@@ -163,13 +163,16 @@ const WORLDS: World[] = [
 						// base positions spread widely for real depth variety at rest — ring 0 at
 						// 0.8s (past the keyframe's 4% fade-in) through ring 5 at 5.3s, 0.9s apart —
 						// covering small/far to notably larger/closer, not six rings bunched together.
-						const RING_STEP = 0.9;
+						const RING_STEP = 0.55;
 						const RING_PHASE_OFFSET = 0.8;
-						// scroll then advances every ring forward by up to another 1.9s, landing the
-						// farthest ring (base 5.3s) at 7.2s at most — still short of the keyframe's 92%
+						// scroll then advances every ring forward by up to another 3.6s, landing the
+						// farthest ring (base 3.55s) at 7.15s at most — still short of the keyframe's 92%
 						// fade-out mark, so every ring stays visible the whole time; none of them ever
-						// completes a lap, fades out, or re-spawns.
-						const TUNNEL_TRAVEL_SECONDS = 1.9;
+						// completes a lap, fades out, or re-spawns. Rings are packed closer together
+						// (0.55s apart, down from 0.9s) specifically to free up this much larger travel
+						// budget — the previous 1.9s budget was already the max the old spacing allowed,
+						// and it left the tunnel looking almost frozen across the full scroll.
+						const TUNNEL_TRAVEL_SECONDS = 3.6;
 						const updateTunnel = (progress: number) => {
 							const travel = progress * TUNNEL_TRAVEL_SECONDS;
 							tunnelRings.forEach((ring, i) => {
@@ -198,14 +201,24 @@ const WORLDS: World[] = [
 
 						tl.addLabel('start');
 
-						// shared "fly out" exit: scale up hugely and rush toward the viewer while
-						// fading — used for both a category heading leaving and its event list
-						// closing, so the two read as the same gesture, not two different ones.
-						const flyOut = (el: HTMLElement, pos: string | number, extra: Record<string, unknown> = {}) =>
-							tl.to(el, { scale: 8, z: 700, autoAlpha: 0, duration: 1.3, ease: 'power1.in', ...extra }, pos);
-
+						// a category heading is a small pill — it can convincingly rocket toward the
+						// viewer and blow up 4.5x without becoming an unreadable mass. Deliberately
+						// NOT the 8x this used to share with the frame close below: at that magnitude
+						// "technical" (mounted near the tunnel's top edge, top:14%) grew past the
+						// viewport's top edge and got clipped behind the fixed nav bar.
 						const exitWord = (word: HTMLElement, pos: string | number) =>
-							flyOut(word, pos, { letterSpacing: '0.4em' });
+							tl.to(word, { scale: 4.5, z: 600, autoAlpha: 0, letterSpacing: '0.4em', duration: 1.3, ease: 'power1.in' }, pos);
+
+						// a frame is a full-width content panel (width: min(94vw, 1100px)) — reusing
+						// the word's aggressive scale-up here (even much smaller than the old 8x)
+						// pushes its already-near-viewport-width edges off both sides of the screen,
+						// clipping real content (an event card's index number) on the left while the
+						// equivalent overflow on the right is just empty padding, so it reads as an
+						// asymmetric glitch even though the scale-from-center is perfectly symmetric.
+						// Keeping this scale small (1.15) keeps the panel's edges on-screen while it
+						// fades, closing it as a clean shrink-and-dismiss instead.
+						const closeFrame = (frame: HTMLElement, pos: string | number) =>
+							tl.to(frame, { scale: 1.15, z: 220, autoAlpha: 0, duration: 1, ease: 'power1.in' }, pos);
 
 						const openFrame = (g: (typeof groups)[number], pos: string | number, label: string) => {
 							if (!g.frame) return;
@@ -222,7 +235,7 @@ const WORLDS: World[] = [
 								)
 								.addLabel(label)
 								.to({}, { duration: 0.9 });
-							flyOut(g.frame, '>');
+							if (g.frame) closeFrame(g.frame, '>');
 						};
 
 						// act I — Technical's word (layer 1) exits the tunnel; its event list (layer 2) opens
