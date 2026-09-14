@@ -52,7 +52,18 @@ const REG_URL = 'https://proleap.ewhizard.tech/join/EvB_iLQ2bm';
 				</span>
 			</span>
 			<span class="line2 reveal-seq" style="--d:0.4s">Achronos — Beyond&nbsp;Time</span>
-			<span class="line1 reveal-seq" style="--d:0.52s">AXIOS<span class="line1-year">&nbsp;'26</span></span>
+			<span class="line1 reveal-seq" style="--d:0.52s">
+				<span class="flip-title" aria-hidden="true">
+					{['A', 'X', 'I', 'O', 'S'].map((ch, i) => (
+						<span class="flip-char" style={`--fi:${i}`}>{ch}</span>
+					))}
+					<span class="flip-gap"></span>
+					{["'", '2', '6'].map((ch, i) => (
+						<span class="flip-char flip-char-year" style={`--fi:${i + 5}`}>{ch}</span>
+					))}
+				</span>
+				<span class="sr-only">Axios '26</span>
+			</span>
 		</h1>
 
 		<div class="meander reveal-seq" style="--d:0.62s" aria-hidden="true">
@@ -318,6 +329,29 @@ const REG_URL = 'https://proleap.ewhizard.tech/join/EvB_iLQ2bm';
 		font-weight: 900;
 		font-size: clamp(3.4rem, 15vw, 10rem);
 		letter-spacing: 0.02em;
+	}
+
+	/* --- the name itself: each letter is its own flap, tipping down into place one after
+	   another, like a split-flap departure board — the Greek line above has already dissolved
+	   (.axios-morph) by the time this starts, so this is the final word arriving letter by
+	   letter, not a crossfade. --- */
+	.flip-title {
+		display: inline-flex;
+		vertical-align: baseline;
+		perspective: 420px;
+	}
+
+	.flip-char {
+		display: inline-block;
+		transform-origin: 50% 100%;
+		transform: rotateX(-100deg);
+		opacity: 0;
+		animation: flip-in 0.5s cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+		animation-delay: calc(3.4s + var(--fi) * 0.07s);
+		font-family: inherit;
+		font-weight: inherit;
+		font-size: inherit;
+		letter-spacing: inherit;
 		background: linear-gradient(135deg, #7a5430 0%, #a87848 24%, #e4b478 42%, #5fa878 70%, #2f6b4a 100%);
 		-webkit-background-clip: text;
 		background-clip: text;
@@ -325,12 +359,32 @@ const REG_URL = 'https://proleap.ewhizard.tech/join/EvB_iLQ2bm';
 		filter: drop-shadow(0 0 30px rgba(212, 168, 108, 0.3)) drop-shadow(0 0 46px rgba(63, 148, 100, 0.22));
 	}
 
-	.line1-year {
+	.flip-char-year {
 		font-size: 0.55em;
+		vertical-align: baseline;
 		background: linear-gradient(135deg, #7a5430 0%, #e4b478 60%);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
+	}
+
+	.flip-gap {
+		display: inline-block;
+		width: 0.28em;
+	}
+
+	@keyframes flip-in {
+		0% {
+			transform: rotateX(-100deg);
+			opacity: 0;
+		}
+		55% {
+			opacity: 1;
+		}
+		100% {
+			transform: rotateX(0deg);
+			opacity: 1;
+		}
 	}
 
 	.line2 {
@@ -645,6 +699,19 @@ const REG_URL = 'https://proleap.ewhizard.tech/join/EvB_iLQ2bm';
 			opacity: 1;
 			transform: none;
 			filter: none;
+			animation: none;
+		}
+		.morph-greek {
+			display: none;
+		}
+		.morph-english {
+			opacity: 1;
+			filter: none;
+			animation: none;
+		}
+		.flip-char {
+			opacity: 1;
+			transform: none;
 			animation: none;
 		}
 	}
