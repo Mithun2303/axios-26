@@ -25,6 +25,7 @@ export interface AxiosEvent {
 	key: string;
 	name: string;
 	icon: string;
+	logo: string;
 	category: 'Technical' | 'Non Technical' | 'Gaming';
 	teamSize: string;
 	prize: string;
@@ -39,7 +40,7 @@ export interface AxiosEvent {
 
 export const events: AxiosEvent[] = [
 	{
-		key: 'tri', name: 'Technical Triathlon', icon: 'gear', category: 'Technical', teamSize: '3 Members',
+		key: 'tri', name: 'Technical Triathlon', icon: 'gear', logo: '/assets/logo-tri.webp', category: 'Technical', teamSize: '3 Members',
 		prize: '₹25,000', tag: 'Relay · 3 Rounds', signature: true,
 		about: "Step into TRIATHLON, an epic battle where knowledge meets strategy and code! Compete through rapid-fire technical challenges, strategic aptitude face-offs, and an intense multi-agent programming arena.",
 		rounds: [
@@ -60,7 +61,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Arul Kevin', ph: '+91 80569 90243' }, { n: 'Anirudhan', ph: '+91 80885 72371' }],
 	},
 	{
-		key: 'brc', name: 'Breach Point', icon: 'lock', category: 'Technical', teamSize: '4 Members',
+		key: 'brc', name: 'Breach Point', icon: 'lock', logo: '/assets/logo-brc.webp', category: 'Technical', teamSize: '4 Members',
 		prize: '₹22,500', tag: 'CTF · 5 Tracks',
 		about: "Every system has a weakness, every story a hidden layer. Cybersecurity meets narrative — crack a jeopardy-style storyline, then defend your systems while breaching your rivals’.",
 		rounds: [
@@ -79,7 +80,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Aditya', ph: '+91 77955 88955' }, { n: 'Saivenketraj', ph: '+91 80569 92112' }],
 	},
 	{
-		key: 'dq', name: 'DataQuest', icon: 'flask', category: 'Technical', teamSize: '3 Members',
+		key: 'dq', name: 'DataQuest', icon: 'flask', logo: '/assets/logo-dq.webp', category: 'Technical', teamSize: '3 Members',
 		prize: '₹15,000', tag: 'Data · 3 Rounds',
 		about: "Time doesn’t wait, and neither does data. Race the clock, decode the patterns, and turn chaos into insight in a full data-science showdown.",
 		rounds: [
@@ -100,7 +101,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Tanaz', ph: '+91 63800 22981' }, { n: 'Livin Joseph', ph: '+91 99943 92653' }],
 	},
 	{
-		key: 'mm', name: 'Math Mania', icon: 'compass', category: 'Technical', teamSize: '2 Members',
+		key: 'mm', name: 'Math Mania', icon: 'compass', logo: '/assets/logo-mm.webp', category: 'Technical', teamSize: '2 Members',
 		prize: '₹15,000', tag: 'Math · 3 Rounds',
 		about: "Precision is power. Logic, strategy, and problem-solving decide who advances through calculated risks and challenging puzzles.",
 		rounds: [
@@ -121,7 +122,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Keerthi Menon', ph: '+91 93632 58127' }, { n: 'Niveda', ph: '+971 54 744 0352' }],
 	},
 	{
-		key: 'qz', name: 'QFactor', icon: 'sparkle', category: 'Non Technical', teamSize: '2 Members',
+		key: 'qz', name: 'QFactor', icon: 'sparkle', logo: '/assets/logo-qz.webp', category: 'Non Technical', teamSize: '2 Members',
 		prize: '₹15,000', tag: 'Quiz · Prelim + Final',
 		about: "Prelims to knockout finals. Mind-boggling questions from almost every topic — no expertise required, just the will to test your knowledge against the brightest minds.",
 		rounds: [
@@ -140,7 +141,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Kaaviya', ph: '+91 63825 80231' }, { n: 'Shambhavi', ph: '+91 80959 43626' }],
 	},
 	{
-		key: 'svc', name: "Survivors' Court", icon: 'scroll', category: 'Non Technical', teamSize: 'Solo Entry',
+		key: 'svc', name: "Survivors' Court", icon: 'scroll', logo: '/assets/logo-svc.webp', category: 'Non Technical', teamSize: 'Solo Entry',
 		prize: '₹15,000', tag: 'Strategy · Elimination',
 		about: "High-stakes crises where every decision has consequences. Navigate chaos, make strategic choices, gather evidence — because when the dust settles, you’ll defend your actions in court.",
 		rounds: [
@@ -163,7 +164,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Mithun Senthil', ph: '+91 74182 50339' }, { n: 'Ranjana', ph: '94957 71225' }],
 	},
 	{
-		key: 'bb', name: 'Big Bull', icon: 'bull', category: 'Non Technical', teamSize: '2–4 Members',
+		key: 'bb', name: 'Big Bull', icon: 'bull', logo: '/assets/logo-bb-badge.webp', category: 'Non Technical', teamSize: '2–4 Members',
 		prize: '₹22,500', tag: 'Stock Market · Strategy',
 		about: "Read the market, back your instincts. Build a simulated portfolio, react to breaking news, and defend the choices behind every trade as the next Big Bull.",
 		rounds: [
@@ -184,7 +185,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Durga', ph: '+91 96989 20880' }, { n: 'Shansita', ph: '+91 83348 12473' }],
 	},
 	{
-		key: 'val', name: 'Valorant', icon: 'shield', category: 'Gaming', teamSize: '5 Members',
+		key: 'val', name: 'Valorant', icon: 'shield', logo: '/assets/logo-val.webp', category: 'Gaming', teamSize: '5 Members',
 		prize: '₹10,000', tag: '5v5 · Knockout',
 		about: "Lock in your agent. Precise gunplay, tactical synergy, and high-stakes strategy — only the sharpest aim and smartest utility usage withstand the crossfire.",
 		rounds: [
@@ -203,7 +204,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Harshavardhan', ph: '+91 63697 21991' }, { n: 'Dharaneesh', ph: '+91 86678 57284' }],
 	},
 	{
-		key: 'fifa', name: 'FIFA', icon: 'target', category: 'Gaming', teamSize: 'Solo Entry',
+		key: 'fifa', name: 'FIFA', icon: 'target', logo: '/assets/logo-fifa.webp', category: 'Gaming', teamSize: 'Solo Entry',
 		prize: '₹4,000', tag: '1v1 · Knockout',
 		about: "Lace up your boots. Tactical build-up play and stunning long-range screamers — glory is only 90 minutes away.",
 		rounds: [
@@ -222,7 +223,7 @@ export const events: AxiosEvent[] = [
 		convenors: [{ n: 'Harshavardhan', ph: '+91 63697 21991' }, { n: 'Dharaneesh', ph: '+91 86678 57284' }],
 	},
 	{
-		key: 'chess', name: 'Chess', icon: 'chess', category: 'Gaming', teamSize: 'Solo Entry',
+		key: 'chess', name: 'Chess', icon: 'chess', logo: '/assets/ev-go.webp', category: 'Gaming', teamSize: 'Solo Entry',
 		prize: '₹6,000', tag: 'Board · Strategy',
 		about: "Sit across the board and outsmart your opponent. Absolute concentration, deep calculation, and flawless long-term strategy for the sharpest minds.",
 		rounds: [

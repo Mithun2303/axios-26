@@ -1,9 +1,13 @@
 ---
-import Icon from './Icon.astro';
-
 const previous = [
-	'Wavicle Data Solutions', 'Foxsense Innovations', 'The Cloud Company',
-	'Shankar IAS Academy', 'Zee Taurus', 'Triumph Hub', 'Frozen Stick', 'Speed Step',
+	{ name: 'Wavicle Data Solutions', logo: null },
+	{ name: 'Foxsense Innovations', logo: null },
+	{ name: 'The Cloud Company', logo: null },
+	{ name: 'Shankar IAS Academy', logo: null },
+	{ name: 'Zee Taurus', logo: null },
+	{ name: 'Triumph Hub', logo: null },
+	{ name: 'Frozen Stick', logo: null },
+	{ name: 'Speed Step', logo: null },
 ];
 ---
 
@@ -17,13 +21,11 @@ const previous = [
 		<div class="sp-titles">
 			<div class="sp-title-card" data-reveal="left">
 				<span class="sp-kicker">Title Sponsor</span>
-				<span class="sp-name">Arcesium</span>
-				<Icon name="laurel" />
+				<img class="sp-logo" src="/assets/arcesium-logo.webp" alt="Arcesium" loading="lazy" />
 			</div>
 			<div class="sp-title-card alt" data-reveal="right">
 				<span class="sp-kicker">Title Co-Sponsor</span>
-				<span class="sp-name">KLA</span>
-				<Icon name="laurel" />
+				<img class="sp-logo" src="/assets/kla-logo.webp" alt="KLA" loading="lazy" />
 			</div>
 		</div>
 
@@ -32,7 +34,7 @@ const previous = [
 			<div class="sp-ticker-wrap">
 				<div class="sp-ticker">
 					{[...previous, ...previous].map((s) => (
-						<span>{s}</span>
+						s.logo ? <img class="sp-ticker-logo" src={s.logo} alt={s.name} loading="lazy" /> : <span>{s.name}</span>
 					))}
 				</div>
 			</div>
@@ -84,24 +86,12 @@ const previous = [
 		color: var(--ink-faint);
 	}
 
-	.sp-name {
-		font-family: var(--font-display-deco);
-		font-size: clamp(1.6rem, 4vw, 2.2rem);
-		color: var(--gold-bright);
-	}
-
-	.sp-title-card.alt .sp-name {
-		color: var(--future-2);
-	}
-
-	.sp-title-card .icon {
-		font-size: 1.6rem;
-		color: var(--gold);
-		opacity: 0.6;
-	}
-
-	.sp-title-card.alt .icon {
-		color: var(--future-2);
+	.sp-logo {
+		max-width: 220px;
+		max-height: 4.5rem;
+		width: auto;
+		height: auto;
+		object-fit: contain;
 	}
 
 	.sp-prev {
@@ -140,6 +130,20 @@ const previous = [
 		font-size: 1.15rem;
 		color: var(--ink-faint);
 		white-space: nowrap;
+	}
+
+	.sp-ticker-logo {
+		max-height: 2.2rem;
+		width: auto;
+		object-fit: contain;
+		opacity: 0.75;
+		filter: grayscale(1) brightness(1.6);
+		transition: opacity 0.3s, filter 0.3s;
+	}
+
+	.sp-ticker-logo:hover {
+		opacity: 1;
+		filter: none;
 	}
 
 	@media (max-width: 620px) {

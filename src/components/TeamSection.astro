@@ -1,18 +1,16 @@
 ---
-import Icon from './Icon.astro';
-
 const officeBearers = [
-	{ name: 'Ravi Varma', role: 'Convenor', icon: 'compass' },
-	{ name: 'Dinesh', role: 'Secretary', icon: 'scroll' },
-	{ name: 'Thithiksha', role: 'Joint Secretary', icon: 'quill' },
-	{ name: 'Ashvanth', role: 'Treasurer', icon: 'coin' },
-	{ name: 'Bhuvanesh', role: 'Executive Coordinator', icon: 'gear' },
+	{ name: 'Ravi Varma', role: 'Convenor', photo: '/assets/convenor.webp' },
+	{ name: 'Dinesh', role: 'Secretary', photo: '/assets/dinesh.webp' },
+	{ name: 'Thithiksha', role: 'Joint Secretary', photo: '/assets/joint-secretary.webp' },
+	{ name: 'Ashvanth', role: 'Treasurer', photo: '/assets/treasurer.webp' },
+	{ name: 'Bhuvanesh', role: 'Executive Coordinator', photo: '/assets/executive-coordinator.webp' },
 ];
 
 const techTeam = [
-	{ name: 'Prem Dharshan', role: 'Director', icon: 'atom' },
-	{ name: 'Mithun', role: 'Coordinator', icon: 'satellite' },
-	{ name: 'Ajay', role: 'Member', icon: 'sparkle' },
+	{ name: 'Prem Dharshan', role: 'Director', photo: '/assets/prem-cropped.jpeg' },
+	{ name: 'Mithun', role: 'Coordinator', photo: '/assets/mithun-cropped.jpeg' },
+	{ name: 'Ajay', role: 'Member', photo: '/assets/ajay-cropped.jpeg' },
 ];
 ---
 
@@ -27,10 +25,12 @@ const techTeam = [
 			<h3 class="team-block-title">Office Bearers</h3>
 			<div class="team-row">
 				{officeBearers.map((p) => (
-					<div class="team-card">
-						<div class="team-icon"><Icon name={p.icon} /></div>
-						<span class="team-name">{p.name}</span>
-						<span class="team-role">{p.role}</span>
+					<div class="medallion">
+						<div class="medallion-frame"><img src={p.photo} alt={p.name} loading="lazy" /></div>
+						<div class="medallion-plate">
+							<span class="medallion-name">{p.name}</span>
+							<span class="medallion-role">{p.role}</span>
+						</div>
 					</div>
 				))}
 			</div>
@@ -40,10 +40,12 @@ const techTeam = [
 			<h3 class="team-block-title">Tech Team</h3>
 			<div class="team-row">
 				{techTeam.map((p) => (
-					<div class="team-card future">
-						<div class="team-icon"><Icon name={p.icon} /></div>
-						<span class="team-name">{p.name}</span>
-						<span class="team-role">{p.role}</span>
+					<div class="medallion future">
+						<div class="medallion-frame"><img src={p.photo} alt={p.name} loading="lazy" /></div>
+						<div class="medallion-plate">
+							<span class="medallion-name">{p.name}</span>
+							<span class="medallion-role">{p.role}</span>
+						</div>
 					</div>
 				))}
 			</div>
@@ -66,71 +68,133 @@ const techTeam = [
 	}
 
 	.team-block-title {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.9rem;
 		font-family: var(--font-body);
 		font-size: 0.78rem;
 		letter-spacing: 0.2em;
 		text-transform: uppercase;
 		color: var(--ink-faint);
-		margin-bottom: 1.4rem;
+		margin-bottom: 2.4rem;
 		text-align: center;
+	}
+
+	.team-block-title::before,
+	.team-block-title::after {
+		content: '';
+		flex: 1;
+		max-width: 90px;
+		height: 1px;
+		background: linear-gradient(90deg, transparent, var(--gold-dim));
+	}
+
+	.team-block-title::after {
+		background: linear-gradient(90deg, var(--gold-dim), transparent);
 	}
 
 	.team-row {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 1.2rem;
+		gap: 2rem 1.6rem;
 	}
 
-	.team-card {
+	/* --- carved medallion portraits --- */
+	.medallion {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.6rem;
-		width: 11rem;
-		padding: 1.6rem 1rem;
-		border: 1px solid var(--line);
-		border-radius: var(--radius);
-		background: linear-gradient(160deg, rgba(20, 21, 42, 0.5), transparent);
-		transition: transform 0.4s var(--ease-out), border-color 0.4s;
+		width: 9.5rem;
 	}
 
-	.team-card:hover {
-		transform: translateY(-6px);
-		border-color: var(--gold-dim);
-	}
-
-	.team-card.future:hover {
-		border-color: var(--future-2);
-	}
-
-	.team-icon {
-		width: 3rem;
-		height: 3rem;
-		display: grid;
-		place-items: center;
+	.medallion-frame {
+		position: relative;
+		width: 5.6rem;
+		height: 5.6rem;
 		border-radius: 50%;
+		padding: 5px;
+		background: conic-gradient(from 200deg, var(--bronze), var(--gold-bright), var(--gold-dim), var(--bronze), var(--gold-bright), var(--bronze));
+		box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.3), inset 0 -3px 5px rgba(0, 0, 0, 0.45), 0 8px 18px -6px rgba(0, 0, 0, 0.6);
+		transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+	}
+
+	.medallion-frame::after {
+		content: '';
+		position: absolute;
+		top: -6px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--bronze));
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+	}
+
+	.medallion-frame img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: 50%;
+		display: block;
+		filter: sepia(0.15) contrast(1.05);
+	}
+
+	.medallion:hover .medallion-frame,
+	.medallion:focus-within .medallion-frame {
+		transform: translateY(-8px) scale(1.05);
+		box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.35), inset 0 -3px 5px rgba(0, 0, 0, 0.4), 0 18px 30px -10px rgba(0, 0, 0, 0.7),
+			0 0 26px rgba(201, 154, 63, 0.3);
+	}
+
+	.medallion-plate {
+		margin-top: 1rem;
+		padding: 0.5rem 0.8rem;
+		width: 100%;
+		border-radius: 6px;
 		border: 1px solid var(--gold-dim);
-		color: var(--gold);
-		font-size: 1.4rem;
+		background: linear-gradient(180deg, rgba(50, 40, 22, 0.7), rgba(20, 16, 9, 0.85));
+		box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+		text-align: center;
 	}
 
-	.team-card.future .team-icon {
-		color: var(--future-2);
-		border-color: color-mix(in srgb, var(--future-2) 40%, transparent);
-	}
-
-	.team-name {
+	.medallion-name {
+		display: block;
 		font-family: var(--font-display);
-		font-size: 0.95rem;
-		text-align: center;
+		font-size: 0.85rem;
+		color: var(--gold-bright);
 	}
 
-	.team-role {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		letter-spacing: 0.06em;
+	.medallion-role {
+		display: block;
+		margin-top: 0.15rem;
+		font-size: 0.62rem;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		text-align: center;
+		color: var(--ink-faint);
+	}
+
+	.medallion.future .medallion-frame {
+		background: conic-gradient(from 200deg, var(--future-2), var(--future), color-mix(in srgb, var(--future-2) 55%, black), var(--future-2));
+	}
+
+	.medallion.future .medallion-frame::after {
+		background: radial-gradient(circle at 35% 30%, var(--future), var(--future-2));
+	}
+
+	.medallion.future:hover .medallion-frame,
+	.medallion.future:focus-within .medallion-frame {
+		box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.35), inset 0 -3px 5px rgba(0, 0, 0, 0.4), 0 18px 30px -10px rgba(0, 0, 0, 0.7),
+			0 0 26px rgba(63, 174, 116, 0.35);
+	}
+
+	.medallion.future .medallion-plate {
+		border-color: color-mix(in srgb, var(--future-2) 45%, transparent);
+	}
+
+	.medallion.future .medallion-name {
+		color: var(--future);
 	}
 </style>

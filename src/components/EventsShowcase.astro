@@ -21,45 +21,42 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 			</div>
 		</div>
 
-		<div class="lineup-grid">
-			{events.map((ev, i) => (
-				<button
-					type="button"
-					id={`event-${ev.key}`}
-					class:list={['ev-card', cat(ev.category)]}
-					data-cat={ev.category}
-					data-target={`dossier-${ev.key}`}
-					data-reveal="scale"
-					style={`--d:${Math.min((i % 6) * 0.08, 0.4)}s`}
-					aria-haspopup="dialog"
-					aria-controls={`dossier-${ev.key}`}
-				>
-					<span class="ev-card-rod ev-card-rod-t" aria-hidden="true"></span>
-					<span class="ev-card-rod ev-card-rod-b" aria-hidden="true"></span>
+		<div class="wheel-stage" data-reveal="scale">
+			<div class="wheel-rings" aria-hidden="true">
+				<span class="wheel-ring wheel-ring-1"></span>
+				<span class="wheel-ring wheel-ring-2"></span>
+			</div>
+			<div class="wheel-hand" aria-hidden="true"></div>
+			<div class="wheel-hub" aria-hidden="true">
+				<Icon name="hourglass" />
+				<span>{events.length} Arenas</span>
+			</div>
 
-					<span class="ev-card-index">{String(i + 1).padStart(2, '0')}</span>
-					{ev.signature && (
-						<span class="ev-card-sig"><Icon name="laurel" /> Signature</span>
-					)}
-
-					<div class="ev-card-seal"><Icon name={ev.icon} /></div>
-					<h3>{ev.name}</h3>
-					<span class="ev-card-tag">{ev.tag}</span>
-
-					<div class="ev-card-prize">
-						<Icon name="coin" />
-						<span class="ev-card-prize-amt">{ev.prize}</span>
-						<span class="ev-card-prize-lbl">Prize Pool</span>
-					</div>
-
-					<div class="ev-card-foot">
-						<span class="tag-chip">{ev.category}</span>
-						<span class="tag-chip"><Icon name="joystick" /> {ev.teamSize}</span>
-					</div>
-
-					<span class="ev-card-cta">Break the Seal <Icon name="arrow-right" /></span>
-				</button>
-			))}
+			<div class="wheel-positions">
+				{events.map((ev, i) => (
+					<button
+						type="button"
+						id={`event-${ev.key}`}
+						class:list={['ev-card', 'wheel-pos', cat(ev.category)]}
+						data-cat={ev.category}
+						data-target={`dossier-${ev.key}`}
+						style={`--angle:${(i / events.length) * 360}deg; --flare-delay:${(-(i / events.length) * 48).toFixed(2)}s`}
+						aria-haspopup="dialog"
+						aria-controls={`dossier-${ev.key}`}
+					>
+						<span class="wheel-pos-glow" aria-hidden="true"></span>
+						<div class="ev-card-seal"><img src={ev.logo} alt={ev.name} loading="lazy" /></div>
+						{ev.signature && (
+							<span class="wheel-pos-sig" title="Signature Event"><Icon name="laurel" /></span>
+						)}
+						<span class="wheel-pos-label">
+							<strong>{ev.name}</strong>
+							<em>{ev.tag}</em>
+							<b><Icon name="coin" /> {ev.prize}</b>
+						</span>
+					</button>
+				))}
+			</div>
 		</div>
 	</div>
 
@@ -69,7 +66,7 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 				<button type="button" class="modal-close" aria-label="Close dossier"><Icon name="close" /></button>
 
 				<div class="d-head">
-					<div class="d-emblem-ring"><Icon name={ev.icon} /></div>
+					<div class="d-emblem-ring"><img src={ev.logo} alt={ev.name} loading="lazy" /></div>
 					<div class="d-head-text">
 						{ev.signature && <span class="d-signature">Signature Event</span>}
 						<span class="d-tag">{ev.tag}</span>
@@ -189,18 +186,71 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		});
 	});
 
+	// orrery layout — positions are spread evenly around the dial, and the
+	// sweeping hand's glow is timed via a matching negative animation-delay
+	const ROTATE_SECONDS = 32;
+	const wheelNodes = Array.from(document.querySelectorAll<HTMLElement>('.wheel-pos'));
+
+	const layoutWheel = () => {
+		const visible = wheelNodes.filter((n) => !n.classList.contains('is-hidden'));
+		const total = visible.length || 1;
+		visible.forEach((node, idx) => {
+			const angle = (idx / total) * 360;
+			node.style.setProperty('--angle', `${angle}deg`);
+			node.style.setProperty('--flare-delay', `${(-(angle / 360) * ROTATE_SECONDS).toFixed(2)}s`);
+		});
+	};
+	layoutWheel();
+
+	// as the hand sweeps around, whichever node it's currently pointing at
+	// gets its preview label shown automatically — no hover needed
+	const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	if (!reduceMotion) {
+		const sweepStart = performance.now();
+		let activeNode: HTMLElement | null = null;
+
+		const tickSweep = () => {
+			const elapsed = (performance.now() - sweepStart) % (ROTATE_SECONDS * 1000);
+			const handAngle = (elapsed / (ROTATE_SECONDS * 1000)) * 360;
+			const visible = wheelNodes.filter((n) => !n.classList.contains('is-hidden'));
+
+			let nearest: HTMLElement | null = null;
+			let smallestDiff = Infinity;
+			for (const node of visible) {
+				const nodeAngle = parseFloat(node.style.getPropertyValue('--angle')) || 0;
+				let diff = Math.abs(handAngle - nodeAngle);
+				if (diff > 180) diff = 360 - diff;
+				if (diff < smallestDiff) {
+					smallestDiff = diff;
+					nearest = node;
+				}
+			}
+
+			// only "point at" a node once the hand is genuinely close to it
+			const pointingAt = nearest && smallestDiff < 14 ? nearest : null;
+			if (pointingAt !== activeNode) {
+				activeNode?.classList.remove('is-active');
+				pointingAt?.classList.add('is-active');
+				activeNode = pointingAt;
+			}
+			requestAnimationFrame(tickSweep);
+		};
+		requestAnimationFrame(tickSweep);
+	}
+
 	// filters
 	const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
-	const cards = document.querySelectorAll<HTMLElement>('.ev-card');
 	chips.forEach((chip) => {
 		chip.addEventListener('click', () => {
 			chips.forEach((c) => c.setAttribute('aria-pressed', 'false'));
 			chip.setAttribute('aria-pressed', 'true');
 			const f = chip.dataset.filter;
-			cards.forEach((card) => {
-				const show = f === 'All' || card.dataset.cat === f;
-				card.classList.toggle('is-hidden', !show);
+			wheelNodes.forEach((node) => {
+				const show = f === 'All' || node.dataset.cat === f;
+				node.classList.toggle('is-hidden', !show);
+				(node as HTMLButtonElement).inert = !show;
 			});
+			layoutWheel();
 		});
 	});
 
@@ -266,84 +316,243 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		font-weight: 600;
 	}
 
-	/* --- teaser grid --- */
-	.lineup-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-		gap: 1.4rem;
+	/* --- orrery: events arranged as hour-marks around a slowly turning dial --- */
+	.wheel-stage {
+		position: relative;
+		width: min(620px, 88vw);
+		height: min(620px, 88vw);
+		margin: 0 auto;
+		/* radius tuned to sit exactly on chrono.png's outer diamond-spike ring */
+		--wheel-r: min(235px, 33.3vw);
+		border-radius: 50%;
+		background: radial-gradient(circle, rgba(5, 8, 6, 0.25) 0%, rgba(5, 8, 6, 0.7) 100%), url('/chrono.png') center / cover no-repeat;
+		box-shadow: 0 0 70px rgba(0, 0, 0, 0.55), inset 0 0 90px rgba(0, 0, 0, 0.6);
+	}
+
+	.wheel-rings {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+
+	.wheel-ring {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		border-radius: 50%;
+		border: 1px solid var(--line);
+		transform: translate(-50%, -50%);
+	}
+
+	.wheel-ring-1 {
+		width: calc(var(--wheel-r) * 2);
+		height: calc(var(--wheel-r) * 2);
+	}
+
+	.wheel-ring-2 {
+		/* matches the dotted mid ring in chrono.png */
+		width: calc(var(--wheel-r) * 1.47);
+		height: calc(var(--wheel-r) * 1.47);
+		opacity: 0.5;
+	}
+
+	.wheel-hand {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 2px;
+		height: var(--wheel-r);
+		background: linear-gradient(to top, var(--gold-bright), transparent 85%);
+		transform-origin: 50% 100%;
+		transform: translate(-50%, -100%) rotate(0deg);
+		animation: wheel-hand-sweep 32s linear infinite;
+		filter: drop-shadow(0 0 6px var(--gold));
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	@keyframes wheel-hand-sweep {
+		to {
+			transform: translate(-50%, -100%) rotate(360deg);
+		}
+	}
+
+	.wheel-hub {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: clamp(72px, 12vw, 112px);
+		height: clamp(72px, 12vw, 112px);
+		border-radius: 50%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		background: radial-gradient(circle at 35% 30%, rgba(30, 26, 16, 0.9), rgba(10, 8, 5, 0.95));
+		border: 1px solid var(--gold-dim);
+		box-shadow: 0 0 30px rgba(201, 154, 63, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.5);
+		z-index: 2;
+		pointer-events: none;
+		color: var(--gold);
+	}
+
+	.wheel-hub .icon {
+		font-size: 1.6rem;
+	}
+
+	.wheel-hub span {
+		font-family: var(--font-display);
+		font-size: 0.58rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.wheel-positions {
+		position: absolute;
+		inset: 0;
 	}
 
 	.ev-card {
-		position: relative;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 5rem;
+		height: 5rem;
 		text-align: left;
 		font-family: inherit;
 		color: inherit;
 		cursor: pointer;
 		appearance: none;
+		border: none;
+		background: none;
+		padding: 0;
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.7rem;
-		padding: 2.6rem 1.6rem 1.8rem;
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		background: linear-gradient(160deg, rgba(46, 36, 20, 0.55), rgba(16, 12, 8, 0.55));
-		overflow: hidden;
-		isolation: isolate;
-		transition: transform 0.4s var(--ease-out), border-color 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+		align-items: center;
+		justify-content: center;
+		transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translate(0, calc(-1 * var(--wheel-r, 200px)))
+			rotate(calc(-1 * var(--angle, 0deg)));
+		transition: transform 0.7s var(--ease-out), opacity 0.5s var(--ease-out);
+		z-index: 3;
+	}
+
+	.ev-card:focus-visible {
+		outline: 2px solid var(--gold);
+		outline-offset: 4px;
+		border-radius: 50%;
 	}
 
 	.ev-card.is-hidden {
-		display: none;
+		opacity: 0;
+		transform: translate(-50%, -50%) scale(0.15);
+		pointer-events: none;
 	}
 
-	.ev-card::before {
-		content: '';
+	.wheel-pos-glow {
 		position: absolute;
-		inset: 0;
-		z-index: -1;
-		background: linear-gradient(120deg, transparent 30%, rgba(201, 154, 63, 0.14) 50%, transparent 70%);
-		transform: translateX(-130%);
-		transition: transform 0.8s var(--ease-out);
+		inset: -8px;
+		border-radius: 50%;
+		background: radial-gradient(circle, var(--accent, var(--gold)) 0%, transparent 70%);
+		opacity: 0;
+		filter: blur(2px);
+		animation: wheel-flare 32s linear infinite;
+		animation-delay: var(--flare-delay, 0s);
+		pointer-events: none;
+		z-index: 0;
 	}
 
-	.ev-card:hover,
-	.ev-card:focus-visible {
-		transform: translateY(-6px);
-		border-color: color-mix(in srgb, var(--accent, var(--gold)) 55%, var(--line));
-		box-shadow: 0 22px 44px -24px rgba(0, 0, 0, 0.65);
-		outline: none;
+	@keyframes wheel-flare {
+		0%,
+		90%,
+		100% {
+			opacity: 0;
+			transform: scale(0.8);
+		}
+		95% {
+			opacity: 0.9;
+			transform: scale(1.3);
+		}
 	}
 
-	.ev-card:hover::before,
-	.ev-card:focus-visible::before {
-		transform: translateX(130%);
+	.wheel-pos-sig {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		width: 1.3rem;
+		height: 1.3rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: linear-gradient(120deg, var(--gold), var(--future));
+		color: var(--void);
+		font-size: 0.65rem;
+		box-shadow: 0 0 8px rgba(201, 154, 63, 0.6);
+		z-index: 3;
 	}
 
-	.ev-card:hover .ev-card-rod,
-	.ev-card:focus-visible .ev-card-rod {
+	.wheel-pos-label {
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		transform: translate(-50%, 0.4rem) scale(0.94);
+		white-space: nowrap;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.2rem;
+		padding: 0.6rem 0.9rem;
+		border: 1px solid var(--gold-dim);
+		border-radius: 10px;
+		background: linear-gradient(160deg, rgba(24, 20, 12, 0.96), rgba(10, 8, 5, 0.98));
+		box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+		z-index: 5;
+	}
+
+	.wheel-pos-label strong {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--ink);
+	}
+
+	.wheel-pos-label em {
+		font-style: normal;
+		font-size: 0.6rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--accent, var(--gold));
+	}
+
+	.wheel-pos-label b {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35em;
+		font-weight: 400;
+		font-family: var(--font-display);
+		font-size: 0.72rem;
+		color: var(--gold-bright);
+		margin-top: 0.1rem;
+	}
+
+	.ev-card:hover .wheel-pos-label,
+	.ev-card:focus-visible .wheel-pos-label,
+	.ev-card.is-active .wheel-pos-label {
 		opacity: 1;
+		transform: translate(-50%, 0.6rem) scale(1);
 	}
 
-	/* scroll rods — the dowels a rolled dossier hangs from */
-	.ev-card-rod {
-		position: absolute;
-		left: 0.5rem;
-		right: 0.5rem;
-		height: 5px;
-		border-radius: 999px;
-		background: linear-gradient(90deg, var(--bronze), var(--gold-bright) 50%, var(--bronze));
-		box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
-		opacity: 0.7;
-		transition: opacity 0.4s var(--ease-out);
+	/* the node the hand is currently pointing at gets a quiet spotlight too */
+	.ev-card.is-active .ev-card-seal {
+		transform: scale(1.12) rotate(-4deg);
 	}
 
-	.ev-card-rod-t {
-		top: 0.6rem;
-	}
-
-	.ev-card-rod-b {
-		bottom: 0.6rem;
+	.ev-card.is-active .wheel-pos-label {
+		z-index: 6;
 	}
 
 	.ev-card.tech {
@@ -374,33 +583,6 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		}
 	}
 
-	.ev-card-index {
-		position: absolute;
-		top: 1.15rem;
-		left: 1.3rem;
-		font-family: var(--font-display);
-		font-size: 0.78rem;
-		color: var(--ink-faint);
-		letter-spacing: 0.08em;
-	}
-
-	.ev-card-sig {
-		position: absolute;
-		top: 1.1rem;
-		right: 0.9rem;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35em;
-		font-size: 0.6rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: var(--void);
-		background: linear-gradient(120deg, var(--gold), var(--future));
-		padding: 0.3em 0.65em;
-		border-radius: 999px;
-		font-weight: 700;
-	}
-
 	/* wax seal — the icon is stamped into it until the card is clicked */
 	.ev-card-seal {
 		position: relative;
@@ -413,11 +595,14 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		transition: transform 0.4s var(--ease-out);
 	}
 
-	.ev-card-seal .icon {
+	.ev-card-seal img {
 		position: relative;
 		z-index: 1;
-		color: var(--accent, var(--gold));
-		filter: brightness(0.5) saturate(0.6);
+		width: 62%;
+		height: 62%;
+		object-fit: contain;
+		border-radius: 50%;
+		filter: brightness(0.85) saturate(0.8);
 		transition: filter 0.35s var(--ease-out) 0.1s;
 	}
 
@@ -455,75 +640,8 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		opacity: 0;
 	}
 
-	.ev-card.is-breaking .ev-card-seal .icon {
+	.ev-card.is-breaking .ev-card-seal img {
 		filter: brightness(1.15) saturate(1);
-	}
-
-	.ev-card h3 {
-		font-size: 1.25rem;
-		line-height: 1.2;
-	}
-
-	.ev-card-tag {
-		font-size: 0.72rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--gold);
-		margin-top: -0.3rem;
-	}
-
-	.ev-card-prize {
-		display: flex;
-		align-items: baseline;
-		gap: 0.45em;
-		color: var(--gold);
-		font-size: 1.1rem;
-		margin-top: 0.2rem;
-	}
-
-	.ev-card-prize-amt {
-		font-family: var(--font-display);
-		font-size: 1.05rem;
-		color: var(--gold-bright);
-	}
-
-	.ev-card-prize-lbl {
-		font-size: 0.6rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-
-	.ev-card-foot {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.ev-card-cta {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5em;
-		margin-top: 0.5rem;
-		font-size: 0.75rem;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-		transition: color 0.3s var(--ease-out);
-	}
-
-	.ev-card-cta .icon {
-		transition: transform 0.3s var(--ease-out);
-	}
-
-	.ev-card:hover .ev-card-cta,
-	.ev-card:focus-visible .ev-card-cta {
-		color: var(--gold-bright);
-	}
-
-	.ev-card:hover .ev-card-cta .icon,
-	.ev-card:focus-visible .ev-card-cta .icon {
-		transform: translateX(4px);
 	}
 
 	/* --- dossier modal --- */
@@ -628,8 +746,13 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		place-items: center;
 		border-radius: 50%;
 		border: 1px solid var(--gold-dim);
-		color: var(--gold);
-		font-size: 1.7rem;
+		overflow: hidden;
+	}
+
+	.d-emblem-ring img {
+		width: 72%;
+		height: 72%;
+		object-fit: contain;
 	}
 
 	.d-head-text {
@@ -861,9 +984,76 @@ const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
 		}
 	}
 
-	@media (max-width: 640px) {
-		.lineup-grid {
-			grid-template-columns: 1fr;
+	@media (prefers-reduced-motion: reduce) {
+		.wheel-hand {
+			animation: none;
+			opacity: 0.4;
+		}
+		.wheel-pos-glow {
+			animation: none;
+			opacity: 0;
+		}
+	}
+
+	/* below this width the dial collapses into a plain vertical list */
+	@media (max-width: 720px) {
+		.wheel-stage {
+			width: 100%;
+			height: auto;
+			border-radius: 0;
+			background: none;
+			box-shadow: none;
+		}
+		.wheel-rings,
+		.wheel-hand,
+		.wheel-hub {
+			display: none;
+		}
+		.wheel-positions {
+			position: static;
+			display: flex;
+			flex-direction: column;
+			gap: 0.8rem;
+		}
+		.ev-card {
+			position: static;
+			width: 100%;
+			height: auto;
+			flex-direction: row;
+			align-items: center;
+			justify-content: flex-start;
+			gap: 1rem;
+			padding: 0.9rem 1.1rem;
+			border: 1px solid var(--line);
+			border-radius: var(--radius);
+			background: linear-gradient(160deg, rgba(46, 36, 20, 0.4), rgba(16, 12, 8, 0.4));
+			transform: none !important;
+		}
+		.ev-card.is-hidden {
+			display: none;
+		}
+		.ev-card:focus-visible {
+			border-radius: var(--radius);
+		}
+		.ev-card-seal {
+			margin-top: 0;
+			flex: none;
+		}
+		.wheel-pos-sig {
+			position: static;
+			margin-left: auto;
+		}
+		.wheel-pos-label {
+			position: static;
+			opacity: 1;
+			pointer-events: none;
+			transform: none;
+			align-items: flex-start;
+			white-space: normal;
+			border: none;
+			background: none;
+			box-shadow: none;
+			padding: 0;
 		}
 	}
 </style>
