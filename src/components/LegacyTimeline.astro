@@ -1,0 +1,467 @@
+---
+import Icon from './Icon.astro';
+
+const chapters = [
+	{
+		num: 'I',
+		greek: 'Α',
+		year: '2024',
+		title: 'The First Spark',
+		icon: 'flask',
+		body: "The Computational Sciences Association lights the first arena. A handful of events, a single day, and a question that still drives every edition since: what happens when curiosity is given a stage?",
+	},
+	{
+		num: 'II',
+		greek: 'Β',
+		year: '2025',
+		title: 'The Signal Grows',
+		icon: 'satellite',
+		body: 'Word travels. Participants cross district lines, then state lines — 3,200 minds, 40 colleges, one weekend. What began as a symposium starts to feel like a gathering point.',
+	},
+	{
+		num: 'III',
+		greek: 'Γ',
+		year: '2026',
+		title: 'Achronos — Now',
+		icon: 'hourglass',
+		body: "AXIOS '26 opens ten arenas across two days at PSG Tech — technical, strategic, and competitive — with a ₹1,50,000 prize pool on the line. This is the chapter you're standing in.",
+		now: true,
+	},
+	{
+		num: 'IV',
+		greek: 'Δ',
+		year: null,
+		title: 'Beyond',
+		icon: 'infinity',
+		body: 'Great ideas never go out of date. What is solved here becomes the footnote in someone else’s breakthrough, years from now. The timeline does not end at the closing ceremony — it opens outward.',
+	},
+];
+---
+
+<section class="legacy" id="legacy">
+	<div class="legacy-intro container" data-reveal="fade">
+		<p class="eyebrow">Legacy</p>
+		<h2 class="section-title">A river that runs <em>beyond time</em></h2>
+		<div class="meander" aria-hidden="true">
+			<svg viewBox="0 0 64 16" preserveAspectRatio="xMidYMid meet">
+				<pattern id="legacy-meander" width="16" height="16" patternUnits="userSpaceOnUse">
+					<path d="M0 12h4V4h4v8h4V4h4" fill="none" stroke="currentColor" stroke-width="1.4" />
+				</pattern>
+				<rect width="64" height="16" fill="url(#legacy-meander)" />
+			</svg>
+		</div>
+		<p class="lede">Scroll to walk the corridor — from the first spark of CSA's symposium to the edition
+			you're about to enter, and the ideas that will outlast it.</p>
+	</div>
+
+	<div class="legacy-pin" id="legacy-pin">
+		<div class="legacy-stage">
+			<div class="legacy-bg" aria-hidden="true">
+				<div class="lb-layer lb-back"></div>
+				<div class="lb-layer lb-mid">
+					<Icon name="column" />
+					<Icon name="column" />
+					<Icon name="column" />
+					<Icon name="pyramid" />
+					<Icon name="column" />
+				</div>
+				<div class="lb-layer lb-front">
+					<Icon name="gear" />
+					<Icon name="star" />
+					<Icon name="atom" />
+					<Icon name="sparkle" />
+					<Icon name="satellite" />
+					<Icon name="star" />
+				</div>
+			</div>
+
+			<div class="legacy-rail" aria-hidden="true">
+				<div class="legacy-rail-fill" id="legacy-fill"></div>
+			</div>
+
+			<div class="legacy-track" id="legacy-track">
+				{chapters.map((c) => (
+					<article class:list={['chapter', { now: c.now }]}>
+						<span class="chapter-num"><span class="chapter-greek" lang="el">{c.greek}&prime;</span> {c.num}</span>
+						<div class="chapter-icon"><Icon name={c.icon} /></div>
+						{c.year ? (
+							<div class="chapter-year" data-year={c.year} aria-label={c.year}>
+								{c.year.split('').map(() => (
+									<span class="flip-digit"><span class="flip-digit-card"><span class="flip-face flip-face-front">0</span><span class="flip-face flip-face-back">0</span></span></span>
+								))}
+							</div>
+						) : (
+							<span class="chapter-year chapter-year-infinite" aria-label="Beyond">&infin;</span>
+						)}
+						<h3>{c.title}</h3>
+						<p>{c.body}</p>
+						{c.now && (
+							<span class="tag-chip now-chip">
+								<Icon name="laurel" class="tag-laurel" />
+								You are here
+								<Icon name="laurel" class="tag-laurel tag-laurel-r" />
+							</span>
+						)}
+					</article>
+				))}
+				<div class="chapter chapter-end">
+					<Icon name="arrow-right" />
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<script>
+	const pin = document.getElementById('legacy-pin');
+	const track = document.getElementById('legacy-track');
+	const fill = document.getElementById('legacy-fill');
+	const backLayers = pin?.querySelectorAll<HTMLElement>('.lb-back, .lb-mid, .lb-front');
+
+	const update = () => {
+		if (!pin || !track) return;
+		const rect = pin.getBoundingClientRect();
+		const vh = window.innerHeight;
+		const total = rect.height - vh;
+		let progress = total > 0 ? (-rect.top) / total : 0;
+		progress = Math.min(1, Math.max(0, progress));
+
+		const maxTranslate = track.scrollWidth - pin.clientWidth;
+		track.style.transform = `translateX(${-progress * maxTranslate}px)`;
+		if (fill) fill.style.width = `${progress * 100}%`;
+
+		backLayers?.forEach((layer, i) => {
+			const speed = [40, 90, 160][i] ?? 60;
+			layer.style.transform = `translateX(${-progress * speed}px)`;
+		});
+	};
+
+	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	if (!prefersReducedMotion) {
+		document.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+		window.addEventListener('resize', update);
+		update();
+	}
+
+	// flip-clock reveal for each chapter's year, once it scrolls into view
+	const flipYear = (container: HTMLElement) => {
+		const value = container.dataset.year || '';
+		const digits = Array.from(container.querySelectorAll<HTMLElement>('.flip-digit'));
+		digits.forEach((digitEl, i) => {
+			const card = digitEl.querySelector<HTMLElement>('.flip-digit-card');
+			const front = digitEl.querySelector<HTMLElement>('.flip-face-front');
+			const back = digitEl.querySelector<HTMLElement>('.flip-face-back');
+			const target = value[i];
+			if (!card || !front || !back || !target) return;
+			window.setTimeout(() => {
+				back.textContent = target;
+				card.classList.add('flipping');
+				const onEnd = () => {
+					card.removeEventListener('transitionend', onEnd);
+					card.style.transition = 'none';
+					card.classList.remove('flipping');
+					front.textContent = target;
+					void card.offsetHeight;
+					card.style.transition = '';
+				};
+				card.addEventListener('transitionend', onEnd);
+			}, i * 110);
+		});
+	};
+
+	const yearEls = document.querySelectorAll<HTMLElement>('.chapter-year[data-year]');
+	const io = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) {
+					flipYear(entry.target as HTMLElement);
+					io.unobserve(entry.target);
+				}
+			}
+		},
+		{ threshold: 0.4 }
+	);
+	yearEls.forEach((el) => io.observe(el));
+</script>
+
+<style>
+	.legacy {
+		position: relative;
+		background: linear-gradient(180deg, var(--deep-2), var(--void) 15%, var(--void) 85%, var(--deep-2));
+		padding-top: 6rem;
+	}
+
+	.legacy-intro {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.meander {
+		width: 112px;
+		height: 16px;
+		color: var(--gold-dim);
+		opacity: 0.75;
+	}
+
+	.meander svg {
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+
+	.legacy-pin {
+		position: relative;
+		height: 320vh;
+	}
+
+	.legacy-stage {
+		position: sticky;
+		top: 0;
+		height: 100vh;
+		overflow: hidden;
+	}
+
+	.legacy-bg {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.lb-layer {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		will-change: transform;
+	}
+
+	.lb-back {
+		background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(63, 174, 116, 0.08), transparent 70%);
+	}
+
+	.lb-mid {
+		justify-content: space-evenly;
+		color: var(--gold-dim);
+		opacity: 0.18;
+		font-size: 9rem;
+		top: 30%;
+	}
+
+	.lb-front {
+		justify-content: space-around;
+		color: var(--future-2);
+		opacity: 0.22;
+		font-size: 2.4rem;
+	}
+
+	.lb-front .icon:nth-child(even) {
+		margin-top: -8rem;
+		color: var(--gold);
+	}
+
+	.legacy-rail {
+		position: absolute;
+		top: 42%;
+		left: 0;
+		right: 0;
+		height: 2px;
+		width: 100%;
+		max-width: var(--container);
+		margin: 0 auto;
+		background: var(--line);
+		transform: translateY(-50%);
+		z-index: 2;
+	}
+
+	.legacy-rail-fill {
+		height: 100%;
+		width: 0%;
+		background: linear-gradient(90deg, var(--bronze), var(--gold-bright), var(--future));
+	}
+
+	.legacy-track {
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		display: flex;
+		align-items: center;
+		gap: clamp(2rem, 6vw, 6rem);
+		padding: 0 clamp(2rem, 8vw, 10vw) 14vh;
+		will-change: transform;
+	}
+
+	.chapter {
+		position: relative;
+		z-index: 2;
+		flex: 0 0 auto;
+		width: min(70vw, 420px);
+		padding: 2.4rem 2rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(20, 21, 42, 0.75), rgba(10, 10, 20, 0.55));
+		backdrop-filter: blur(6px);
+		display: flex;
+		flex-direction: column;
+		gap: 0.7rem;
+	}
+
+	.chapter.now {
+		border-color: var(--gold);
+		box-shadow: 0 0 60px rgba(201, 154, 63, 0.15), inset 0 0 40px rgba(201, 154, 63, 0.06);
+	}
+
+	.chapter-num {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--ink-faint);
+		letter-spacing: 0.2em;
+	}
+
+	.chapter-greek {
+		color: var(--gold);
+		font-size: 1.05em;
+	}
+
+	.chapter-year {
+		position: absolute;
+		top: 1.6rem;
+		right: 1.8rem;
+		display: flex;
+		align-items: center;
+		gap: 1px;
+		font-family: var(--font-display);
+		font-size: 0.95rem;
+		line-height: 1;
+	}
+
+	.chapter-year-infinite {
+		color: var(--gold-dim);
+		font-size: 1.3rem;
+	}
+
+	/* --- flip-clock digits, reused for each chapter's year --- */
+	.flip-digit {
+		position: relative;
+		display: block;
+		width: 0.62em;
+		height: 1.15em;
+		perspective: 240px;
+	}
+
+	.flip-digit-card {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		transform-style: preserve-3d;
+		transition: transform 0.5s cubic-bezier(0.45, 0, 0.55, 1);
+	}
+
+	.flip-digit-card.flipping {
+		transform: rotateX(-180deg);
+	}
+
+	.flip-face {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+		color: var(--gold-dim);
+	}
+
+	.flip-face-back {
+		transform: rotateX(180deg);
+	}
+
+	.chapter-icon {
+		width: 3rem;
+		height: 3rem;
+		display: grid;
+		place-items: center;
+		color: var(--gold);
+		border: 1px solid var(--gold-dim);
+		border-radius: 50%;
+		font-size: 1.4rem;
+		margin-bottom: 0.4rem;
+	}
+
+	.chapter.now .chapter-icon {
+		color: var(--void);
+		background: linear-gradient(120deg, var(--gold), var(--future));
+		border-color: transparent;
+	}
+
+	.chapter h3 {
+		font-size: 1.5rem;
+	}
+
+	.chapter p {
+		font-family: var(--font-serif);
+		font-size: 1.08rem;
+		color: var(--ink-dim);
+		line-height: 1.55;
+	}
+
+	.chapter .tag-chip {
+		align-self: flex-start;
+		margin-top: 0.3rem;
+		border-color: var(--gold);
+		color: var(--gold-bright);
+	}
+
+	.tag-laurel {
+		font-size: 1.1em;
+		color: var(--gold);
+	}
+
+	.tag-laurel-r {
+		transform: scaleX(-1);
+	}
+
+	.chapter-end {
+		width: 140px;
+		border: none;
+		background: none;
+		align-items: center;
+		justify-content: center;
+		color: var(--ink-faint);
+		font-size: 2rem;
+	}
+
+	@media (max-width: 640px), (prefers-reduced-motion: reduce) {
+		.legacy-pin {
+			height: auto;
+		}
+		.legacy-stage {
+			position: static;
+			height: auto;
+			overflow: visible;
+		}
+		.legacy-bg,
+		.legacy-rail {
+			display: none;
+		}
+		.legacy-track {
+			position: static;
+			inset: auto;
+			height: auto;
+			flex-direction: column;
+			transform: none !important;
+			padding: 0 1.25rem;
+		}
+		.chapter {
+			width: 100%;
+		}
+		.chapter-end {
+			display: none;
+		}
+	}
+</style>

@@ -1,0 +1,231 @@
+---
+interface Props {
+	name: string;
+	class?: string;
+}
+const { name, class: className = '' } = Astro.props;
+---
+
+<svg
+	class={`icon icon-${name} ${className}`}
+	viewBox="0 0 48 48"
+	fill="none"
+	xmlns="http://www.w3.org/2000/svg"
+	aria-hidden="true"
+>
+	{name === 'hourglass' && (
+		<>
+			<path d="M13 6h22M13 42h22" stroke-linecap="round" />
+			<path d="M14 6c0 8 6 12 10 12s10-4 10-12M14 42c0-8 6-12 10-12s10 4 10 12" />
+			<circle cx="24" cy="18" r="1.4" fill="currentColor" stroke="none" />
+			<circle cx="24" cy="30" r="1.4" fill="currentColor" stroke="none" />
+		</>
+	)}
+	{name === 'gear' && (
+		<>
+			<circle cx="24" cy="24" r="7" />
+			<circle cx="24" cy="24" r="2" fill="currentColor" stroke="none" />
+			<path d="M24 5v6M24 37v6M43 24h-6M11 24H5M37.5 10.5l-4.2 4.2M14.7 33.3l-4.2 4.2M37.5 37.5l-4.2-4.2M14.7 14.7l-4.2-4.2" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'compass' && (
+		<>
+			<circle cx="24" cy="24" r="18" />
+			<path d="M31 17l-5 10-10 5 5-10 10-5z" stroke-linejoin="round" />
+			<circle cx="24" cy="24" r="1.6" fill="currentColor" stroke="none" />
+		</>
+	)}
+	{name === 'quill' && (
+		<>
+			<path d="M39 9C24 11 12 22 8 39c9-3 16-8 21-16" stroke-linejoin="round" />
+			<path d="M39 9c2 7-1 15-8 20" />
+			<path d="M8 39l6-6" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'scroll' && (
+		<>
+			<path d="M12 8h20a4 4 0 014 4v4H16a4 4 0 00-4 4v20" />
+			<path d="M12 8a4 4 0 00-4 4 4 4 0 004 4" />
+			<path d="M36 40H16a4 4 0 01-4-4 4 4 0 014-4h20v4a4 4 0 004 4 4 4 0 004-4V16" />
+			<path d="M20 18h12M20 24h12" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'laurel' && (
+		<>
+			<path d="M24 9v30" stroke-linecap="round" />
+			<path d="M24 12c-6 1-11 5-12 11 6 1 11-3 12-8M24 20c-6 1-11 5-12 11 6 1 11-3 12-8M24 28c-6 1-11 5-12 11 6 1 11-3 12-8" />
+			<path d="M24 12c6 1 11 5 12 11-6 1-11-3-12-8M24 20c6 1 11 5 12 11-6 1-11-3-12-8M24 28c6 1 11 5 12 11-6 1-11-3-12-8" />
+		</>
+	)}
+	{name === 'key' && (
+		<>
+			<circle cx="15" cy="24" r="8" />
+			<path d="M22 24h20M34 24v7M40 24v7" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'coin' && (
+		<>
+			<ellipse cx="24" cy="24" rx="17" ry="17" />
+			<ellipse cx="24" cy="24" rx="11" ry="11" />
+			<path d="M24 17v14M20 20h6.5a2.5 2.5 0 010 5H20M20 28h7" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'chess' && (
+		<>
+			<path d="M18 40h12M16 40l2-8h12l2 8" stroke-linejoin="round" />
+			<path d="M20 32l1-6h6l1 6" stroke-linejoin="round" />
+			<circle cx="24" cy="14" r="5" />
+			<path d="M24 19v7" />
+		</>
+	)}
+	{name === 'joystick' && (
+		<>
+			<circle cx="24" cy="14" r="5" />
+			<path d="M24 19v10" />
+			<path d="M12 39v-8a4 4 0 014-4h16a4 4 0 014 4v8" />
+			<circle cx="18" cy="33" r="1.6" fill="currentColor" stroke="none" />
+			<circle cx="30" cy="33" r="1.6" fill="currentColor" stroke="none" />
+		</>
+	)}
+	{name === 'shield' && (
+		<>
+			<path d="M24 6l14 5v11c0 10-6 17-14 20-8-3-14-10-14-20V11l14-5z" stroke-linejoin="round" />
+			<path d="M18 23l4.5 5L31 18" stroke-linecap="round" stroke-linejoin="round" />
+		</>
+	)}
+	{name === 'flag' && (
+		<>
+			<path d="M14 6v36" stroke-linecap="round" />
+			<path d="M14 8c6-3 10 3 16 0v16c-6 3-10-3-16 0V8z" stroke-linejoin="round" />
+		</>
+	)}
+	{name === 'star' && (
+		<path d="M24 6l4.6 12.8L42 21l-10 8.8L34.6 43 24 35.4 13.4 43 16 29.8 6 21l13.4-2.2L24 6z" stroke-linejoin="round" />
+	)}
+	{name === 'moon' && <path d="M31 6a18 18 0 100 36 15 15 0 01-9-15 15 15 0 019-21z" stroke-linejoin="round" />}
+	{name === 'atom' && (
+		<>
+			<circle cx="24" cy="24" r="2.4" fill="currentColor" stroke="none" />
+			<ellipse cx="24" cy="24" rx="19" ry="7.5" />
+			<ellipse cx="24" cy="24" rx="19" ry="7.5" transform="rotate(60 24 24)" />
+			<ellipse cx="24" cy="24" rx="19" ry="7.5" transform="rotate(120 24 24)" />
+		</>
+	)}
+	{name === 'pyramid' && (
+		<>
+			<path d="M24 8l18 32H6L24 8z" stroke-linejoin="round" />
+			<path d="M24 8l-6 32M24 8l6 32" />
+		</>
+	)}
+	{name === 'column' && (
+		<>
+			<path d="M10 8h28M10 40h28M14 12v24M22 12v24M26 12v24M34 12v24" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'sundial' && (
+		<>
+			<ellipse cx="24" cy="30" rx="16" ry="8" />
+			<path d="M24 30L36 10" stroke-linecap="round" />
+			<path d="M24 30l-3-16" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'satellite' && (
+		<>
+			<rect x="18" y="18" width="12" height="8" rx="1.5" transform="rotate(-40 24 22)" />
+			<path d="M8 12l6 6M40 36l-6-6" stroke-linecap="round" />
+			<path d="M30 14l4-4M14 34l4 4" stroke-linecap="round" />
+			<path d="M25 27l-9 9" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'flask' && (
+		<>
+			<path d="M20 6h8M21 6v12l-9 16a4 4 0 003.5 6h17a4 4 0 003.5-6l-9-16V6" stroke-linejoin="round" />
+			<path d="M16 30h16" />
+		</>
+	)}
+	{name === 'bull' && (
+		<>
+			<path d="M8 34L20 20l7 7 13-15" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M32 10h8v8" stroke-linecap="round" stroke-linejoin="round" />
+		</>
+	)}
+	{name === 'lock' && (
+		<>
+			<rect x="12" y="22" width="24" height="18" rx="2" />
+			<path d="M17 22v-6a7 7 0 0114 0v6" />
+			<circle cx="24" cy="31" r="2" fill="currentColor" stroke="none" />
+		</>
+	)}
+	{name === 'target' && (
+		<>
+			<circle cx="24" cy="24" r="17" />
+			<circle cx="24" cy="24" r="10" />
+			<circle cx="24" cy="24" r="2.4" fill="currentColor" stroke="none" />
+		</>
+	)}
+	{name === 'trophy' && (
+		<>
+			<path d="M16 8h16v10a8 8 0 01-16 0V8z" />
+			<path d="M16 10h-4a5 5 0 005 5M32 10h4a5 5 0 01-5 5" />
+			<path d="M24 26v6M18 40h12M17 40c0-4 2-6 7-6s7 2 7 6" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'calendar' && (
+		<>
+			<rect x="7" y="10" width="34" height="30" rx="3" />
+			<path d="M7 19h34M15 6v8M33 6v8" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'map-pin' && (
+		<>
+			<path d="M24 42s13-13 13-23a13 13 0 10-26 0c0 10 13 23 13 23z" stroke-linejoin="round" />
+			<circle cx="24" cy="19" r="4.5" />
+		</>
+	)}
+	{name === 'phone' && (
+		<path d="M11 9c1-2 4-3 6-2l3 6-3 3c1 5 5 9 10 10l3-3 6 3c1 2 0 5-2 6-3 1-7 1-14-3-8-4-11-13-9-20z" stroke-linejoin="round" />
+	)}
+	{name === 'mail' && (
+		<>
+			<rect x="6" y="12" width="36" height="24" rx="3" />
+			<path d="M7 14l17 13 17-13" />
+		</>
+	)}
+	{name === 'arrow-right' && <path d="M8 24h32M28 12l12 12-12 12" stroke-linecap="round" stroke-linejoin="round" />}
+	{name === 'chevron-down' && <path d="M10 16l14 14 14-14" stroke-linecap="round" stroke-linejoin="round" />}
+	{name === 'close' && <path d="M13 13l22 22M35 13L13 35" stroke-linecap="round" />}
+	{name === 'sparkle' && (
+		<path d="M24 4c1 8 4 11 12 12-8 1-11 4-12 12-1-8-4-11-12-12 8-1 11-4 12-12z" stroke-linejoin="round" />
+	)}
+	{name === 'infinity' && (
+		<path d="M13 24a7 7 0 000 0 7 7 0 0111-3 7 7 0 010 14 7 7 0 01-11-3 7 7 0 000 0" />
+	)}
+	{name === 'shears' && (
+		<>
+			<circle cx="13" cy="14" r="5" />
+			<circle cx="13" cy="34" r="5" />
+			<path d="M17 17L40 40M17 31L40 8" stroke-linecap="round" />
+		</>
+	)}
+	{name === 'hand' && (
+		<>
+			<path d="M15 44l-1-6.5c-.6-3.5-2-6-4.4-9.3-1-1.4-.7-3 .7-3.7 1.5-.8 3-.2 4 1.1l3.2 4" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M17.5 40v-9c0-1.6 1.2-2.8 2.7-2.8s2.7 1.2 2.7 2.8v3.5" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M22.9 34.2V21.6c0-1.6 1.2-2.9 2.7-2.9s2.7 1.3 2.7 2.9v12.6" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M28.3 34V16.4c0-1.6 1.2-2.9 2.7-2.9s2.7 1.3 2.7 2.9V34" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M33.7 34V21c0-1.6 1.2-2.8 2.65-2.8S39 19.4 39 21v14.5c0 5.8-4 10.5-10 10.5h-2c-4 0-6.3-1.4-8.6-4.6L15 37" stroke-linecap="round" stroke-linejoin="round" />
+			<circle cx="25" cy="30" r="1.3" fill="currentColor" stroke="none" opacity="0.9" />
+		</>
+	)}
+</svg>
+
+<style>
+	.icon {
+		width: 1em;
+		height: 1em;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		vector-effect: non-scaling-stroke;
+		display: inline-block;
+	}
+</style>

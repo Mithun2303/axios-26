@@ -1,0 +1,869 @@
+---
+import Icon from './Icon.astro';
+import { events } from '../data/events';
+
+const cat = (c: string) => (c === 'Technical' ? 'tech' : c === 'Gaming' ? 'game' : 'nontech');
+const filters = ['All', 'Technical', 'Non Technical', 'Gaming'];
+---
+
+<section class="lineup" id="lineup">
+	<div class="container">
+		<div class="lineup-head" data-reveal="fade">
+			<p class="eyebrow">The Lineup</p>
+			<h2 class="section-title">Ten arenas. <em>One clock.</em></h2>
+			<p class="lede">Ten sealed dossiers. Each one stays closed until you are — open an arena for its
+				rounds, its exact hour, and the prize riding on it.</p>
+
+			<div class="filters" role="tablist" aria-label="Filter events by category">
+				{filters.map((f, i) => (
+					<button class="filter-chip" data-filter={f} aria-pressed={i === 0 ? 'true' : 'false'}>{f}</button>
+				))}
+			</div>
+		</div>
+
+		<div class="lineup-grid">
+			{events.map((ev, i) => (
+				<button
+					type="button"
+					id={`event-${ev.key}`}
+					class:list={['ev-card', cat(ev.category)]}
+					data-cat={ev.category}
+					data-target={`dossier-${ev.key}`}
+					data-reveal="scale"
+					style={`--d:${Math.min((i % 6) * 0.08, 0.4)}s`}
+					aria-haspopup="dialog"
+					aria-controls={`dossier-${ev.key}`}
+				>
+					<span class="ev-card-rod ev-card-rod-t" aria-hidden="true"></span>
+					<span class="ev-card-rod ev-card-rod-b" aria-hidden="true"></span>
+
+					<span class="ev-card-index">{String(i + 1).padStart(2, '0')}</span>
+					{ev.signature && (
+						<span class="ev-card-sig"><Icon name="laurel" /> Signature</span>
+					)}
+
+					<div class="ev-card-seal"><Icon name={ev.icon} /></div>
+					<h3>{ev.name}</h3>
+					<span class="ev-card-tag">{ev.tag}</span>
+
+					<div class="ev-card-prize">
+						<Icon name="coin" />
+						<span class="ev-card-prize-amt">{ev.prize}</span>
+						<span class="ev-card-prize-lbl">Prize Pool</span>
+					</div>
+
+					<div class="ev-card-foot">
+						<span class="tag-chip">{ev.category}</span>
+						<span class="tag-chip"><Icon name="joystick" /> {ev.teamSize}</span>
+					</div>
+
+					<span class="ev-card-cta">Break the Seal <Icon name="arrow-right" /></span>
+				</button>
+			))}
+		</div>
+	</div>
+
+	{events.map((ev) => (
+		<dialog class="dossier-modal" id={`dossier-${ev.key}`} aria-labelledby={`dossier-${ev.key}-title`}>
+			<div class="modal-panel">
+				<button type="button" class="modal-close" aria-label="Close dossier"><Icon name="close" /></button>
+
+				<div class="d-head">
+					<div class="d-emblem-ring"><Icon name={ev.icon} /></div>
+					<div class="d-head-text">
+						{ev.signature && <span class="d-signature">Signature Event</span>}
+						<span class="d-tag">{ev.tag}</span>
+						<h3 id={`dossier-${ev.key}-title`}>{ev.name}</h3>
+						<div class="d-meta">
+							<span class="tag-chip">{ev.category}</span>
+							<span class="tag-chip"><Icon name="joystick" /> {ev.teamSize}</span>
+							<span class="tag-chip prize"><Icon name="coin" /> {ev.prize}</span>
+						</div>
+					</div>
+				</div>
+
+				<p class="d-about">{ev.about}</p>
+
+				<div class="d-grid">
+					<div class="d-rounds">
+						<h4><Icon name="scroll" /> Rounds</h4>
+						<ol>
+							{ev.rounds.map((r) => (
+								<li><strong>{r.t}</strong><span>{r.d}</span></li>
+							))}
+						</ol>
+					</div>
+
+					<div class="d-side">
+						<div class="d-timeline">
+							<h4><Icon name="hourglass" /> Timeline</h4>
+							<ul>
+								{ev.timeline.map((t) => (
+									<li>
+										<span class="d-tl-round">{t.r}</span>
+										<span class="d-tl-day">{t.day}</span>
+										<span class="d-tl-time num">{t.time}</span>
+										<span class="d-tl-loc">{t.loc}</span>
+									</li>
+								))}
+							</ul>
+						</div>
+
+						{ev.splits.length > 0 && (
+							<div class="d-splits">
+								<h4><Icon name="trophy" /> Prize Split</h4>
+								{ev.splits.map((s) => (
+									<div class="split-row">
+										<span class="split-p">{s.p}</span>
+										<div class="split-bar"><div class="split-fill" style={`--w:${s.w}%`}></div></div>
+										<span class="split-a num">{s.a}</span>
+									</div>
+								))}
+							</div>
+						)}
+
+						<div class="d-convenors">
+							<h4><Icon name="quill" /> Convenors</h4>
+							{ev.convenors.map((c) => (
+								<span class="convenor">{c.n} <a href={`tel:${c.ph.replace(/\s/g, '')}`}>{c.ph}</a></span>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+		</dialog>
+	))}
+</section>
+
+<script>
+	const dialogs = new Map<string, HTMLDialogElement>();
+	document.querySelectorAll<HTMLDialogElement>('.dossier-modal').forEach((d) => dialogs.set(d.id, d));
+
+	const openDossier = (dialog: HTMLDialogElement) => {
+		if (dialog.open) return;
+		dialog.showModal();
+		document.documentElement.classList.add('dossier-open');
+		requestAnimationFrame(() => requestAnimationFrame(() => dialog.classList.add('is-open')));
+	};
+
+	const closeDossier = (dialog: HTMLDialogElement) => {
+		if (!dialog.open) return;
+		dialog.classList.remove('is-open');
+		const panel = dialog.querySelector<HTMLElement>('.modal-panel');
+		let done = false;
+		const finish = () => {
+			if (done) return;
+			done = true;
+			dialog.close();
+			document.documentElement.classList.remove('dossier-open');
+			// let the seal re-form on the triggering card, ready to be broken again
+			document.querySelector(`.ev-card[data-target="${dialog.id}"]`)?.classList.remove('is-breaking');
+		};
+		panel?.addEventListener('transitionend', finish, { once: true });
+		setTimeout(finish, 500);
+	};
+
+	// cracking the wax seal is a beat of its own before the dossier opens
+	const breakSealThenOpen = (card: HTMLElement, dialog: HTMLDialogElement) => {
+		if (card.classList.contains('is-breaking')) return;
+		card.classList.add('is-breaking');
+		setTimeout(() => openDossier(dialog), 360);
+	};
+
+	document.querySelectorAll<HTMLButtonElement>('.ev-card').forEach((card) => {
+		card.addEventListener('click', () => {
+			const target = card.dataset.target;
+			const dialog = target ? dialogs.get(target) : undefined;
+			if (dialog) breakSealThenOpen(card, dialog);
+		});
+	});
+
+	dialogs.forEach((dialog) => {
+		dialog.addEventListener('click', (e) => {
+			if (e.target === dialog) closeDossier(dialog);
+		});
+		dialog.querySelector('.modal-close')?.addEventListener('click', () => closeDossier(dialog));
+		dialog.addEventListener('cancel', (e) => {
+			e.preventDefault();
+			closeDossier(dialog);
+		});
+	});
+
+	// filters
+	const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+	const cards = document.querySelectorAll<HTMLElement>('.ev-card');
+	chips.forEach((chip) => {
+		chip.addEventListener('click', () => {
+			chips.forEach((c) => c.setAttribute('aria-pressed', 'false'));
+			chip.setAttribute('aria-pressed', 'true');
+			const f = chip.dataset.filter;
+			cards.forEach((card) => {
+				const show = f === 'All' || card.dataset.cat === f;
+				card.classList.toggle('is-hidden', !show);
+			});
+		});
+	});
+
+	// deep links from elsewhere (e.g. #event-tri) scroll to the card and open its dossier
+	const openFromHash = () => {
+		const id = location.hash.slice(1);
+		if (!id) return;
+		const card = document.getElementById(id);
+		if (!card || !card.classList.contains('ev-card')) return;
+		card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+		card.classList.add('pulse');
+		setTimeout(() => card.classList.remove('pulse'), 1500);
+		const target = (card as HTMLElement).dataset.target;
+		const dialog = target ? dialogs.get(target) : undefined;
+		if (dialog) setTimeout(() => breakSealThenOpen(card as HTMLElement, dialog), 550);
+	};
+	if (location.hash) openFromHash();
+	window.addEventListener('hashchange', openFromHash);
+</script>
+
+<style>
+	.lineup {
+		padding: 8rem 0 4rem;
+		position: relative;
+		background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(63, 174, 116, 0.06), transparent 60%);
+	}
+
+	.lineup-head {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		margin-bottom: 4rem;
+	}
+
+	.filters {
+		display: flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		justify-content: center;
+		margin-top: 0.8rem;
+	}
+
+	.filter-chip {
+		font-family: var(--font-body);
+		font-size: 0.75rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 0.55em 1.1em;
+		border-radius: 999px;
+		border: 1px solid var(--line);
+		background: transparent;
+		color: var(--ink-dim);
+		cursor: pointer;
+		transition: all 0.3s var(--ease-out);
+	}
+
+	.filter-chip[aria-pressed='true'] {
+		background: var(--gold);
+		border-color: var(--gold);
+		color: var(--void);
+		font-weight: 600;
+	}
+
+	/* --- teaser grid --- */
+	.lineup-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+		gap: 1.4rem;
+	}
+
+	.ev-card {
+		position: relative;
+		text-align: left;
+		font-family: inherit;
+		color: inherit;
+		cursor: pointer;
+		appearance: none;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.7rem;
+		padding: 2.6rem 1.6rem 1.8rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		background: linear-gradient(160deg, rgba(46, 36, 20, 0.55), rgba(16, 12, 8, 0.55));
+		overflow: hidden;
+		isolation: isolate;
+		transition: transform 0.4s var(--ease-out), border-color 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+	}
+
+	.ev-card.is-hidden {
+		display: none;
+	}
+
+	.ev-card::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background: linear-gradient(120deg, transparent 30%, rgba(201, 154, 63, 0.14) 50%, transparent 70%);
+		transform: translateX(-130%);
+		transition: transform 0.8s var(--ease-out);
+	}
+
+	.ev-card:hover,
+	.ev-card:focus-visible {
+		transform: translateY(-6px);
+		border-color: color-mix(in srgb, var(--accent, var(--gold)) 55%, var(--line));
+		box-shadow: 0 22px 44px -24px rgba(0, 0, 0, 0.65);
+		outline: none;
+	}
+
+	.ev-card:hover::before,
+	.ev-card:focus-visible::before {
+		transform: translateX(130%);
+	}
+
+	.ev-card:hover .ev-card-rod,
+	.ev-card:focus-visible .ev-card-rod {
+		opacity: 1;
+	}
+
+	/* scroll rods — the dowels a rolled dossier hangs from */
+	.ev-card-rod {
+		position: absolute;
+		left: 0.5rem;
+		right: 0.5rem;
+		height: 5px;
+		border-radius: 999px;
+		background: linear-gradient(90deg, var(--bronze), var(--gold-bright) 50%, var(--bronze));
+		box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+		opacity: 0.7;
+		transition: opacity 0.4s var(--ease-out);
+	}
+
+	.ev-card-rod-t {
+		top: 0.6rem;
+	}
+
+	.ev-card-rod-b {
+		bottom: 0.6rem;
+	}
+
+	.ev-card.tech {
+		--accent: var(--gold);
+	}
+
+	.ev-card.nontech {
+		--accent: var(--future-2);
+	}
+
+	.ev-card.game {
+		--accent: var(--ember);
+	}
+
+	.ev-card.pulse {
+		animation: card-pulse 1.4s var(--ease-out);
+	}
+
+	@keyframes card-pulse {
+		0% {
+			box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, var(--gold)) 55%, transparent);
+		}
+		65% {
+			box-shadow: 0 0 0 16px transparent;
+		}
+		100% {
+			box-shadow: 0 0 0 0 transparent;
+		}
+	}
+
+	.ev-card-index {
+		position: absolute;
+		top: 1.15rem;
+		left: 1.3rem;
+		font-family: var(--font-display);
+		font-size: 0.78rem;
+		color: var(--ink-faint);
+		letter-spacing: 0.08em;
+	}
+
+	.ev-card-sig {
+		position: absolute;
+		top: 1.1rem;
+		right: 0.9rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35em;
+		font-size: 0.6rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--void);
+		background: linear-gradient(120deg, var(--gold), var(--future));
+		padding: 0.3em 0.65em;
+		border-radius: 999px;
+		font-weight: 700;
+	}
+
+	/* wax seal — the icon is stamped into it until the card is clicked */
+	.ev-card-seal {
+		position: relative;
+		width: 3.4rem;
+		height: 3.4rem;
+		display: grid;
+		place-items: center;
+		margin-top: 0.4rem;
+		font-size: 1.5rem;
+		transition: transform 0.4s var(--ease-out);
+	}
+
+	.ev-card-seal .icon {
+		position: relative;
+		z-index: 1;
+		color: var(--accent, var(--gold));
+		filter: brightness(0.5) saturate(0.6);
+		transition: filter 0.35s var(--ease-out) 0.1s;
+	}
+
+	.ev-card-seal::before,
+	.ev-card-seal::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--accent, var(--gold)) 65%, white 20%), color-mix(in srgb, var(--accent, var(--gold)) 80%, black 20%));
+		box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.35), inset 0 2px 2px rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.4);
+		transition: transform 0.4s var(--ease-out), opacity 0.4s var(--ease-out);
+	}
+
+	.ev-card-seal::before {
+		clip-path: polygon(0 0, 100% 0, 100% 47%, 0 53%);
+	}
+
+	.ev-card-seal::after {
+		clip-path: polygon(0 53%, 100% 47%, 100% 100%, 0 100%);
+	}
+
+	.ev-card:hover .ev-card-seal,
+	.ev-card:focus-visible .ev-card-seal {
+		transform: scale(1.06) rotate(-4deg);
+	}
+
+	.ev-card.is-breaking .ev-card-seal::before {
+		transform: translate(-10px, -8px) rotate(-20deg);
+		opacity: 0;
+	}
+
+	.ev-card.is-breaking .ev-card-seal::after {
+		transform: translate(10px, 8px) rotate(16deg);
+		opacity: 0;
+	}
+
+	.ev-card.is-breaking .ev-card-seal .icon {
+		filter: brightness(1.15) saturate(1);
+	}
+
+	.ev-card h3 {
+		font-size: 1.25rem;
+		line-height: 1.2;
+	}
+
+	.ev-card-tag {
+		font-size: 0.72rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--gold);
+		margin-top: -0.3rem;
+	}
+
+	.ev-card-prize {
+		display: flex;
+		align-items: baseline;
+		gap: 0.45em;
+		color: var(--gold);
+		font-size: 1.1rem;
+		margin-top: 0.2rem;
+	}
+
+	.ev-card-prize-amt {
+		font-family: var(--font-display);
+		font-size: 1.05rem;
+		color: var(--gold-bright);
+	}
+
+	.ev-card-prize-lbl {
+		font-size: 0.6rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.ev-card-foot {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.ev-card-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		margin-top: 0.5rem;
+		font-size: 0.75rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		transition: color 0.3s var(--ease-out);
+	}
+
+	.ev-card-cta .icon {
+		transition: transform 0.3s var(--ease-out);
+	}
+
+	.ev-card:hover .ev-card-cta,
+	.ev-card:focus-visible .ev-card-cta {
+		color: var(--gold-bright);
+	}
+
+	.ev-card:hover .ev-card-cta .icon,
+	.ev-card:focus-visible .ev-card-cta .icon {
+		transform: translateX(4px);
+	}
+
+	/* --- dossier modal --- */
+	:global(html.dossier-open) {
+		overflow: hidden;
+	}
+
+	.dossier-modal {
+		border: none;
+		padding: 0;
+		background: transparent;
+		color: inherit;
+		max-width: min(880px, 92vw);
+		width: 100%;
+		max-height: 86vh;
+		overflow: visible;
+	}
+
+	.dossier-modal::backdrop {
+		background: rgba(5, 8, 6, 0.78);
+		backdrop-filter: blur(8px);
+	}
+
+	.modal-panel {
+		position: relative;
+		container-type: inline-size;
+		container-name: dossier;
+		max-height: 86vh;
+		overflow-y: auto;
+		padding: clamp(1.8rem, 4vw, 3rem);
+		border: 1px solid var(--gold-dim);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(20, 21, 42, 0.97), rgba(8, 9, 18, 0.98));
+		opacity: 0;
+		transform: translateY(28px) scale(0.96);
+		transition: opacity 0.45s var(--ease-out), transform 0.5s var(--ease-out);
+	}
+
+	.dossier-modal.is-open .modal-panel {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+
+	.modal-panel > *:not(.modal-close) {
+		opacity: 0;
+		transform: translateY(14px);
+		transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+	}
+
+	.dossier-modal.is-open .modal-panel > *:not(.modal-close) {
+		opacity: 1;
+		transform: none;
+	}
+
+	.modal-panel > .d-head {
+		transition-delay: 0.06s;
+	}
+
+	.modal-panel > .d-about {
+		transition-delay: 0.14s;
+	}
+
+	.modal-panel > .d-grid {
+		transition-delay: 0.22s;
+	}
+
+	.modal-close {
+		position: absolute;
+		top: 1rem;
+		right: 1rem;
+		z-index: 2;
+		width: 2.2rem;
+		height: 2.2rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--line);
+		background: rgba(10, 10, 20, 0.6);
+		color: var(--ink-dim);
+		cursor: pointer;
+		transition: border-color 0.3s var(--ease-out), color 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+	}
+
+	.modal-close:hover {
+		border-color: var(--gold);
+		color: var(--gold);
+		transform: rotate(90deg);
+	}
+
+	.d-head {
+		display: flex;
+		gap: 1.3rem;
+		align-items: flex-start;
+		padding-right: 2.6rem;
+	}
+
+	.d-emblem-ring {
+		flex: none;
+		width: 3.8rem;
+		height: 3.8rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 1.7rem;
+	}
+
+	.d-head-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+
+	.d-signature {
+		align-self: flex-start;
+		font-size: 0.65rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--void);
+		background: linear-gradient(120deg, var(--gold), var(--future));
+		padding: 0.3em 0.7em;
+		border-radius: 999px;
+		font-weight: 700;
+	}
+
+	.d-tag {
+		font-size: 0.72rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gold);
+	}
+
+	.d-head-text h3 {
+		font-size: clamp(1.5rem, 3vw, 1.9rem);
+	}
+
+	.d-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.3rem;
+	}
+
+	.d-meta .tag-chip.prize {
+		color: var(--gold-bright);
+		border-color: var(--gold-dim);
+	}
+
+	.d-about {
+		font-family: var(--font-serif);
+		font-size: 1.08rem;
+		color: var(--ink-dim);
+		margin-top: 1.4rem;
+		max-width: 60em;
+		line-height: 1.6;
+	}
+
+	.d-grid {
+		display: grid;
+		grid-template-columns: 1.1fr 1fr;
+		gap: 2.4rem;
+		margin-top: 1.8rem;
+	}
+
+	.d-grid h4 {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		margin-bottom: 0.8rem;
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+
+	.d-rounds ol {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+		counter-reset: rnd;
+	}
+
+	.d-rounds li {
+		position: relative;
+		padding-left: 1.8rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.d-rounds li::before {
+		counter-increment: rnd;
+		content: counter(rnd);
+		position: absolute;
+		left: 0;
+		top: 0.1rem;
+		width: 1.3rem;
+		height: 1.3rem;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 0.68rem;
+		display: grid;
+		place-items: center;
+		font-family: var(--font-display);
+	}
+
+	.d-rounds li strong {
+		font-size: 0.95rem;
+	}
+
+	.d-rounds li span {
+		font-size: 0.88rem;
+		color: var(--ink-dim);
+		line-height: 1.5;
+	}
+
+	.d-side {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.d-timeline ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.d-timeline li {
+		display: grid;
+		grid-template-columns: 2rem 3.4rem 1fr auto;
+		gap: 0.6rem;
+		align-items: center;
+		font-size: 0.78rem;
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: rgba(20, 21, 42, 0.35);
+	}
+
+	.d-tl-round {
+		color: var(--gold);
+		font-family: var(--font-display);
+		font-size: 0.7rem;
+	}
+
+	.d-tl-day {
+		color: var(--ink-faint);
+	}
+
+	.d-tl-time {
+		color: var(--ink);
+	}
+
+	.d-tl-loc {
+		color: var(--ink-faint);
+		text-align: right;
+		font-size: 0.72rem;
+	}
+
+	.split-row {
+		display: grid;
+		grid-template-columns: 5rem 1fr 4rem;
+		align-items: center;
+		gap: 0.7rem;
+		font-size: 0.8rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.split-p {
+		color: var(--ink-dim);
+	}
+
+	.split-bar {
+		height: 6px;
+		border-radius: 999px;
+		background: var(--line);
+		overflow: hidden;
+	}
+
+	.split-fill {
+		height: 100%;
+		width: var(--w);
+		border-radius: 999px;
+		background: linear-gradient(90deg, var(--bronze), var(--gold-bright));
+		transform-origin: left;
+		transform: scaleX(0);
+		transition: transform 1s var(--ease-out) 0.3s;
+	}
+
+	.dossier-modal.is-open .split-fill {
+		transform: scaleX(1);
+	}
+
+	.split-a {
+		text-align: right;
+		color: var(--gold-bright);
+	}
+
+	.d-convenors {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.convenor {
+		font-size: 0.82rem;
+		color: var(--ink-dim);
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.convenor a {
+		color: var(--gold);
+	}
+
+	@container dossier (max-width: 560px) {
+		.d-head {
+			flex-direction: column;
+			padding-right: 0;
+		}
+		.d-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.lineup-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

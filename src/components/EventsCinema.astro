@@ -1,0 +1,706 @@
+---
+import Icon from './Icon.astro';
+import { events, type AxiosEvent } from '../data/events';
+
+interface World {
+	key: string;
+	label: string;
+	match: AxiosEvent['category'];
+	accent: string;
+	index: string;
+	icon: string;
+}
+
+const WORLDS: World[] = [
+	{ key: 'technical', label: 'Technical', match: 'Technical', accent: 'var(--gold)', index: 'I', icon: 'gear' },
+	{ key: 'nontechnical', label: 'Non-Technical', match: 'Non Technical', accent: 'var(--future-2)', index: 'II', icon: 'scroll' },
+	{ key: 'gaming', label: 'Gaming', match: 'Gaming', accent: 'var(--ember)', index: 'III', icon: 'joystick' },
+];
+---
+
+<section class="cinema" id="arenas">
+	<div class="cinema-intro container" data-reveal="fade">
+		<p class="eyebrow">The Directory</p>
+		<h2 class="section-title">Enter the <em class="skew-heading">Arenas</em></h2>
+		<p class="lede">Scroll to travel through three classes of events — each one arrives as a name, then opens into its own chamber.</p>
+	</div>
+
+	<div class="cinema-stage" id="cinema-stage">
+		<div class="cinema-bg" aria-hidden="true">
+			<div class="cinema-tunnel">
+				<div class="tunnel-backwall" aria-hidden="true"></div>
+				<div class="tunnel-rays"></div>
+				{Array.from({ length: 6 }).map((_, i) => (
+					<div class="tunnel-ring" style={`--i:${i}`}></div>
+				))}
+			</div>
+			<div class="cinema-particles"></div>
+			<svg class="cinema-meander" viewBox="0 0 64 16" preserveAspectRatio="xMidYMid slice">
+				<pattern id="cinema-meander-pattern" width="16" height="16" patternUnits="userSpaceOnUse">
+					<path d="M0 12h4V4h4v8h4V4h4" fill="none" stroke="currentColor" stroke-width="1.2" />
+				</pattern>
+				<rect width="64" height="16" fill="url(#cinema-meander-pattern)" />
+			</svg>
+		</div>
+
+		{WORLDS.map((world) => {
+			const worldEvents = events.filter((ev) => ev.category === world.match);
+			return (
+				<div class="cinema-world" data-world={world.key}>
+					<h3 class="cinema-word" data-word={world.key} style={`--accent:${world.accent}`}>{world.label}</h3>
+
+					<div class="cinema-frame">
+						<div class="frame-panel" style={`--accent:${world.accent}`}>
+							<span class="fp-corner tr" aria-hidden="true"></span>
+							<span class="fp-corner bl" aria-hidden="true"></span>
+
+							<div class="frame-head">
+								<span class="frame-index">{world.index}</span>
+								<h4>{world.label} Events</h4>
+							</div>
+
+							<div class="frame-grid">
+								{worldEvents.map((ev, idx) => (
+									<a href={`#event-${ev.key}`} class="frame-item">
+										<span class="frame-item-num">{String(idx + 1).padStart(2, '0')}</span>
+										<span class="frame-item-icon"><Icon name={ev.icon} /></span>
+										<span class="frame-item-body">
+											<strong>{ev.name}</strong>
+											<span class="frame-item-desc">{ev.tag}</span>
+										</span>
+										<Icon name="arrow-right" class="frame-item-arrow" />
+									</a>
+								))}
+							</div>
+
+							<div class="frame-foot">
+								<a href="#lineup" class="btn ghost frame-cta">Explore Events <Icon name="arrow-right" /></a>
+							</div>
+						</div>
+					</div>
+				</div>
+			);
+		})}
+
+	</div>
+</section>
+
+<script>
+	import { gsap } from 'gsap';
+	import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	const stage = document.getElementById('cinema-stage');
+	const worlds = Array.from(document.querySelectorAll<HTMLElement>('.cinema-world'));
+	if (!stage || worlds.length === 0) {
+		// no-op: markup missing, nothing to animate
+	} else {
+		const mm = gsap.matchMedia();
+
+		mm.add(
+			{
+				isDesktop: '(min-width: 901px)',
+				reduceMotion: '(prefers-reduced-motion: reduce)',
+			},
+			(context) => {
+				const conditions = context.conditions as { isDesktop: boolean; reduceMotion: boolean };
+
+				// reduced motion: everything stays in its natural, fully visible CSS state — no JS animation at all
+				if (conditions.reduceMotion) return;
+
+				if (conditions.isDesktop) {
+						// --- full cinematic pinned sequence: six functional tunnel layers, permanently
+						// mapped in pairs to the three categories — layer 1/3/5 carries the category
+						// name, layer 2/4/6 carries that category's event list. Each pair sits one
+						// layer apart so the list reads as stepping out from just behind its name.
+						// Any rings beyond the 6th (see the decorative .tunnel-ring elements below)
+						// are pure padding — no content is ever assigned to them.
+						const groups = worlds.map((world) => ({
+							word: world.querySelector<HTMLElement>('.cinema-word'),
+							frame: world.querySelector<HTMLElement>('.cinema-frame'),
+							items: Array.from(world.querySelectorAll<HTMLElement>('.frame-item')),
+						}));
+
+						if (groups.length < 3 || !groups.every((g) => g.word && g.frame)) return;
+
+						// flattened depth curve (0.6 floor, not 0.32) — even the farthest category
+						// plate stays legible and prominent at rest, so all three read as strong,
+						// emphasised category markers the moment the section comes into view,
+						// rather than the back ones looking like faint background detail.
+						const LAYER_POSES = [
+							{ scale: 1, z: 0, rotateX: 0 }, // layer 1 — nearest
+							{ scale: 0.94, z: -50, rotateX: 2 }, // layer 2
+							{ scale: 0.88, z: -100, rotateX: 3 }, // layer 3
+							{ scale: 0.8, z: -160, rotateX: 5 }, // layer 4
+							{ scale: 0.72, z: -220, rotateX: 6 }, // layer 5
+							{ scale: 0.6, z: -300, rotateX: 8 }, // layer 6 — farthest
+						];
+						const OPEN_POSE = LAYER_POSES[0];
+						const wordLayer = (i: number) => LAYER_POSES[i * 2]; // layers 1, 3, 5
+						const frameLayer = (i: number) => LAYER_POSES[i * 2 + 1]; // layers 2, 4, 6
+
+						// each world's plate is pinned to its own spot on the tunnel wall via CSS
+						// (top/left in the stylesheet); xPercent/yPercent just re-centers the plate
+						// on that point instead of anchoring by its corner.
+						groups.forEach((g, i) => {
+							gsap.set(g.word, { ...wordLayer(i), autoAlpha: 1, xPercent: -50, yPercent: -50 });
+							gsap.set(g.frame, { ...frameLayer(i), autoAlpha: 0, y: 50 });
+						});
+
+						// the tunnel rings are a CSS keyframe animation left paused — scroll progress
+						// scrubs them by rewriting animation-delay, so the grid flies toward you
+						// continuously across every category act, like a real tunnel. The previous
+						// version let each ring's delay travel a full 8s lap, which meant it actually
+						// completed the keyframe (reaching 100% — opacity 0 — then wrapping back to
+						// 0%, also opacity 0): a ring fading out and fading back in from nothing reads
+						// exactly like a *new* ring being spawned, even though it's the same element.
+						// Fixed here by keeping every ring's delay, for the entire scroll, strictly
+						// inside a safe window well short of the keyframe's two opacity-0 ends — so
+						// motion is continuous and substantial, but no ring ever completes a lap,
+						// vanishes, or reappears. Always exactly 6, never more.
+						const tunnelRings = Array.from(document.querySelectorAll<HTMLElement>('.tunnel-ring'));
+						// base positions spread widely for real depth variety at rest — ring 0 at
+						// 0.8s (past the keyframe's 4% fade-in) through ring 5 at 5.3s, 0.9s apart —
+						// covering small/far to notably larger/closer, not six rings bunched together.
+						const RING_STEP = 0.9;
+						const RING_PHASE_OFFSET = 0.8;
+						// scroll then advances every ring forward by up to another 1.9s, landing the
+						// farthest ring (base 5.3s) at 7.2s at most — still short of the keyframe's 92%
+						// fade-out mark, so every ring stays visible the whole time; none of them ever
+						// completes a lap, fades out, or re-spawns.
+						const TUNNEL_TRAVEL_SECONDS = 1.9;
+						const updateTunnel = (progress: number) => {
+							const travel = progress * TUNNEL_TRAVEL_SECONDS;
+							tunnelRings.forEach((ring, i) => {
+								ring.style.animationDelay = `${-(travel + RING_PHASE_OFFSET + i * RING_STEP)}s`;
+							});
+						};
+						updateTunnel(0);
+
+						// seven named stops: start, each word-exit moment, and each frame's fully-open
+						// moment — still used to position the acts and as call() anchors below, just no
+						// longer used to snap scroll to them. scrub:1 alone already smooths the motion
+						// (a little lag/easing between raw scroll and the timeline's playhead); the grid
+						// now tracks scroll continuously instead of jumping to the nearest stop.
+						const tl = gsap.timeline({
+							scrollTrigger: {
+								trigger: stage,
+								start: 'top top',
+								end: () => '+=' + window.innerHeight * 5.5,
+								scrub: 1,
+								pin: true,
+								anticipatePin: 1,
+								invalidateOnRefresh: true,
+								onUpdate: (self) => updateTunnel(self.progress),
+							},
+						});
+
+						tl.addLabel('start');
+
+						// shared "fly out" exit: scale up hugely and rush toward the viewer while
+						// fading — used for both a category heading leaving and its event list
+						// closing, so the two read as the same gesture, not two different ones.
+						const flyOut = (el: HTMLElement, pos: string | number, extra: Record<string, unknown> = {}) =>
+							tl.to(el, { scale: 8, z: 700, autoAlpha: 0, duration: 1.3, ease: 'power1.in', ...extra }, pos);
+
+						const exitWord = (word: HTMLElement, pos: string | number) =>
+							flyOut(word, pos, { letterSpacing: '0.4em' });
+
+						const openFrame = (g: (typeof groups)[number], pos: string | number, label: string) => {
+							if (!g.frame) return;
+							tl.to(
+								g.frame,
+								{ autoAlpha: 1, y: 0, ...OPEN_POSE, duration: 1, ease: 'power2.out' },
+								pos
+							)
+								.fromTo(
+									g.items,
+									{ autoAlpha: 0, y: 26 },
+									{ autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.07, ease: 'power2.out' },
+									'<0.2'
+								)
+								.addLabel(label)
+								.to({}, { duration: 0.9 });
+							flyOut(g.frame, '>');
+						};
+
+						// act I — Technical's word (layer 1) exits the tunnel; its event list (layer 2) opens
+						exitWord(groups[0].word!, 0);
+						tl.addLabel('technical');
+						openFrame(groups[0], '<0.5', 'technical-events');
+
+						// act II — Non-Technical's word (layer 3) exits; its event list (layer 4) opens
+						exitWord(groups[1].word!, '+=0.3');
+						tl.addLabel('nontechnical');
+						openFrame(groups[1], '<0.5', 'nontechnical-events');
+
+						// act III — Gaming's word (layer 5) exits; its event list (layer 6) opens
+						exitWord(groups[2].word!, '+=0.3');
+						tl.addLabel('gaming');
+						openFrame(groups[2], '<0.5', 'gaming-events');
+
+						// the tunnel is finite: once gaming's list has flown off, the tunnel background
+						// dissolves to the section's plain void, so the pin releases on a clean, empty
+						// frame rather than cutting away mid-scene right into Time Machine's own
+						// entrance (see TimeMachine.astro, which scales up from small the moment it
+						// scrolls into view directly after this section).
+						const cinemaBg = document.querySelector<HTMLElement>('.cinema-bg');
+						if (cinemaBg) tl.to(cinemaBg, { autoAlpha: 0, duration: 1, ease: 'none' }, '>-0.2');
+					} else {
+					// --- lightweight mobile/tablet: simple in-flow reveal per world, no pin, minimal 3D ---
+					worlds.forEach((world) => {
+						const word = world.querySelector<HTMLElement>('.cinema-word');
+						const frame = world.querySelector<HTMLElement>('.cinema-frame');
+						const items = world.querySelectorAll<HTMLElement>('.frame-item');
+
+						gsap.timeline({
+							scrollTrigger: {
+								trigger: world,
+								start: 'top 78%',
+								toggleActions: 'play none none reverse',
+							},
+						})
+							.from(word, { autoAlpha: 0, y: 32, duration: 0.6, ease: 'power2.out' })
+							.from(frame, { autoAlpha: 0, y: 32, duration: 0.6, ease: 'power2.out' }, '-=0.25')
+							.from(items, { autoAlpha: 0, y: 18, duration: 0.4, stagger: 0.06, ease: 'power2.out' }, '-=0.3');
+					});
+				}
+			}
+		);
+	}
+</script>
+
+<style>
+	.cinema {
+		position: relative;
+		background: var(--void);
+	}
+
+	.cinema-intro {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		padding: 7rem 0 3rem;
+	}
+
+	/* --- pinned cinematic stage (GSAP ScrollTrigger creates the spacer) --- */
+	.cinema-stage {
+		position: relative;
+		height: 100vh;
+		overflow: hidden;
+		background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(63, 174, 116, 0.08), transparent 65%), var(--void);
+		perspective: 1400px;
+		--ring-w: min(78vmin, 900px);
+	}
+
+	.cinema-bg {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		overflow: hidden;
+	}
+
+	/* --- the wormhole: a finite perspective-grid tunnel — a fixed 6 rings, capped by a solid
+	   back wall (below) so it visibly ends instead of receding into black, its motion scrubbed
+	   entirely by scroll (updateTunnel in the script below), never running on its own. --- */
+	.cinema-tunnel {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		perspective: 600px;
+		perspective-origin: 50% 50%;
+	}
+
+	/* the tunnel's far end: a static, glowing panel sitting just behind where the rings
+	   themselves originate (translateZ(-800px) in @keyframes tunnel-fly below), so depth
+	   terminates at a visible surface rather than fading into open black. */
+	.tunnel-backwall {
+		position: absolute;
+		width: var(--ring-w);
+		aspect-ratio: 4 / 3;
+		transform: translateZ(-820px) scale(0.22);
+		background: radial-gradient(ellipse at center, color-mix(in srgb, var(--gold-dim) 40%, transparent), transparent 72%);
+		border: 1px solid color-mix(in srgb, var(--gold-dim) 55%, transparent);
+		border-radius: 2px;
+		opacity: 0.6;
+	}
+
+	.tunnel-rays {
+		position: absolute;
+		inset: -20%;
+		background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--gold-dim) 55%, transparent) 0deg 0.3deg, transparent 0.3deg 7.5deg);
+		-webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, #000 34%, #000 62%, transparent 92%);
+		mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, #000 34%, #000 62%, transparent 92%);
+		opacity: 0.5;
+	}
+
+	.tunnel-ring {
+		position: absolute;
+		width: var(--ring-w);
+		aspect-ratio: 4 / 3;
+		border: 1px solid var(--gold-dim);
+		box-shadow: 0 0 24px rgba(201, 154, 63, 0.08);
+		opacity: 0;
+		animation: tunnel-fly 8s linear infinite;
+		animation-delay: calc(var(--i) * -1s);
+		animation-play-state: paused;
+	}
+
+	/* the fade-in/out is compressed into narrow bands at each tip (4%/92%) rather than the
+	   wide 12%/70% used before — that leaves most of the 8s cycle genuinely visible, which is
+	   what gives the script below enough room to both spread the 6 rings out for real depth
+	   variety *and* keep every one comfortably clear of the fully-transparent 0%/100% ends
+	   throughout the whole scroll — the combination that was previously impossible to get at
+	   once (wide spread ate the travel budget, or vice versa). */
+	@keyframes tunnel-fly {
+		0% {
+			transform: translateZ(-800px) scale(0.25);
+			opacity: 0;
+			border-color: var(--future-2);
+		}
+		4% {
+			opacity: 0.55;
+		}
+		92% {
+			opacity: 0.4;
+			border-color: var(--gold-dim);
+		}
+		100% {
+			transform: translateZ(280px) scale(1.7);
+			opacity: 0;
+			border-color: var(--gold);
+		}
+	}
+
+	.cinema-particles {
+		position: absolute;
+		inset: 0;
+		opacity: 0.5;
+		background-image:
+			radial-gradient(1.5px 1.5px at 12% 22%, #fff8 50%, transparent),
+			radial-gradient(1.5px 1.5px at 82% 15%, #fff6 50%, transparent),
+			radial-gradient(1px 1px at 32% 68%, #fff9 50%, transparent),
+			radial-gradient(1.5px 1.5px at 62% 40%, #fff5 50%, transparent),
+			radial-gradient(1px 1px at 92% 60%, #fff7 50%, transparent),
+			radial-gradient(1.5px 1.5px at 22% 85%, #fff6 50%, transparent),
+			radial-gradient(1px 1px at 48% 12%, #fff8 50%, transparent),
+			radial-gradient(1.5px 1.5px at 72% 90%, #fff5 50%, transparent);
+	}
+
+	.cinema-meander {
+		position: absolute;
+		bottom: 6%;
+		left: 50%;
+		transform: translateX(-50%);
+		width: min(70vw, 480px);
+		height: 14px;
+		color: var(--gold-dim);
+		opacity: 0.4;
+	}
+
+	/* --- each "world": a category name + its event frame, stacked in the same viewport rect.
+	   No transform-style here on purpose: this element is never itself transformed, so leaving
+	   it off means it doesn't seal its own stacking context — the .cinema-word/.cinema-frame
+	   z-index (1/2) then compares correctly across all three worlds, not just within one, so an
+	   idle category's word can never paint over another category's open event list. Perspective
+	   from .cinema-stage still reaches their transforms fine either way, since this element
+	   itself has no transform to flatten. --- */
+	.cinema-world {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* --- category plates: small 3D signs bolted onto the tunnel's edges, not headline text.
+	   Each is an extruded block — the ::before is its back face, pushed behind on the z-axis —
+	   so it reads as a solid object sitting in the tunnel, not a flat sticker. --- */
+	.cinema-word {
+		position: absolute;
+		z-index: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
+		padding: 0.6em 0.95em;
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		color: var(--void);
+		background: var(--accent);
+		border-radius: 3px;
+		box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 40px color-mix(in srgb, var(--accent) 55%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+		will-change: transform, opacity;
+		transform-style: preserve-3d;
+	}
+
+	.cinema-word::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: color-mix(in srgb, var(--accent) 35%, #000 65%);
+		border-radius: inherit;
+		transform: translateZ(-10px);
+		box-shadow: 0 18px 34px rgba(0, 0, 0, 0.6);
+		z-index: -1;
+	}
+
+	/* technical: mounted flush on the tunnel's top edge */
+	.cinema-word[data-word='technical'] {
+		top: 14%;
+		left: 50%;
+	}
+
+	/* non-technical: stacked vertically along the tunnel's left grid line — left is pinned to
+	   the same x-coordinate as the ring's edge, not a guessed percentage, so it reads as
+	   mounted on the grid itself rather than floating near it. */
+	.cinema-word[data-word='nontechnical'] {
+		top: 50%;
+		left: calc(50% - var(--ring-w) / 2);
+		writing-mode: vertical-rl;
+		text-orientation: upright;
+		letter-spacing: 0.02em;
+	}
+
+	/* gaming: mounted on the lower-right edge */
+	.cinema-word[data-word='gaming'] {
+		top: 82%;
+		left: 76%;
+	}
+
+	/* --- the event frame: a futuristic control panel, not a card grid --- */
+	.cinema-frame {
+		position: relative;
+		z-index: 2;
+		width: min(94vw, 1100px);
+		max-height: 84vh;
+		overflow-y: auto;
+		will-change: transform, opacity;
+	}
+
+	.frame-panel {
+		position: relative;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(10, 18, 14, 0.92), rgba(6, 10, 8, 0.96));
+		box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+		padding: clamp(1.5rem, 3vw, 2.6rem);
+	}
+
+	.frame-panel::before,
+	.frame-panel::after,
+	.frame-panel .fp-corner {
+		content: '';
+		position: absolute;
+		width: 14px;
+		height: 14px;
+		pointer-events: none;
+	}
+
+	.frame-panel::before {
+		top: -1px;
+		left: -1px;
+		border-top: 1px solid var(--accent);
+		border-left: 1px solid var(--accent);
+	}
+
+	.frame-panel::after {
+		bottom: -1px;
+		right: -1px;
+		border-bottom: 1px solid var(--accent);
+		border-right: 1px solid var(--accent);
+	}
+
+	.fp-corner.tr {
+		top: -1px;
+		right: -1px;
+		border-top: 1px solid var(--accent);
+		border-right: 1px solid var(--accent);
+	}
+
+	.fp-corner.bl {
+		bottom: -1px;
+		left: -1px;
+		border-bottom: 1px solid var(--accent);
+		border-left: 1px solid var(--accent);
+	}
+
+	.frame-head {
+		display: flex;
+		align-items: baseline;
+		gap: 0.8rem;
+		margin-bottom: 1.6rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.frame-index {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		letter-spacing: 0.3em;
+		color: var(--accent);
+	}
+
+	.frame-head h4 {
+		font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+		text-transform: uppercase;
+	}
+
+	.frame-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 1rem;
+	}
+
+	.frame-item {
+		position: relative;
+		display: flex;
+		align-items: flex-start;
+		gap: 0.8rem;
+		padding: 1rem 2.2rem 1rem 1rem;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.02);
+		transition: border-color 0.3s var(--ease-out), background 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+	}
+
+	.frame-item:hover,
+	.frame-item:focus-visible {
+		border-color: var(--accent);
+		background: rgba(255, 255, 255, 0.05);
+		transform: translateY(-3px);
+	}
+
+	.frame-item-num {
+		flex: 0 0 auto;
+		font-family: var(--font-display);
+		font-size: 0.7rem;
+		color: var(--ink-faint);
+		padding-top: 0.15rem;
+	}
+
+	.frame-item-icon {
+		flex: 0 0 auto;
+		width: 2.1rem;
+		height: 2.1rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--accent);
+		color: var(--accent);
+		font-size: 1rem;
+	}
+
+	.frame-item-body {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.frame-item-body strong {
+		font-size: 0.95rem;
+		color: var(--ink);
+	}
+
+	.frame-item-desc {
+		font-size: 0.7rem;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	:global(.frame-item-arrow) {
+		position: absolute;
+		top: 0.9rem;
+		right: 0.9rem;
+		color: var(--ink-faint);
+		font-size: 0.85rem;
+		transition: transform 0.3s var(--ease-out), color 0.3s var(--ease-out);
+	}
+
+	.frame-item:hover :global(.frame-item-arrow),
+	.frame-item:focus-visible :global(.frame-item-arrow) {
+		transform: translate(3px, -3px);
+		color: var(--accent);
+	}
+
+	.frame-foot {
+		display: flex;
+		justify-content: center;
+		margin-top: 1.8rem;
+	}
+
+	@media (max-width: 900px) {
+		.cinema-stage {
+			height: auto;
+			overflow: visible;
+			perspective: none;
+		}
+
+		.cinema-bg {
+			display: none;
+		}
+
+		.cinema-world {
+			position: relative;
+			inset: auto;
+			flex-direction: column;
+			gap: 2rem;
+			padding: 4.5rem 1.25rem;
+		}
+
+		.cinema-word {
+			position: relative;
+			top: auto;
+			left: auto;
+			right: auto;
+			bottom: auto;
+			writing-mode: horizontal-tb;
+			font-size: clamp(0.75rem, 3vw, 0.95rem);
+		}
+
+		.cinema-frame {
+			width: 100%;
+			max-height: none;
+			overflow-y: visible;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cinema-stage {
+			height: auto;
+			overflow: visible;
+			perspective: none;
+		}
+		.cinema-bg {
+			display: none;
+		}
+		.cinema-world {
+			position: relative;
+			inset: auto;
+			flex-direction: column;
+			gap: 2rem;
+			padding: 4.5rem 1.25rem;
+		}
+		.cinema-word {
+			position: relative;
+			top: auto;
+			left: auto;
+			right: auto;
+			bottom: auto;
+			writing-mode: horizontal-tb;
+			font-size: clamp(0.75rem, 3vw, 0.95rem);
+		}
+	}
+</style>

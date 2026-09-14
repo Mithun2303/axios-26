@@ -1,0 +1,136 @@
+---
+import Icon from './Icon.astro';
+
+const officeBearers = [
+	{ name: 'Ravi Varma', role: 'Convenor', icon: 'compass' },
+	{ name: 'Dinesh', role: 'Secretary', icon: 'scroll' },
+	{ name: 'Thithiksha', role: 'Joint Secretary', icon: 'quill' },
+	{ name: 'Ashvanth', role: 'Treasurer', icon: 'coin' },
+	{ name: 'Bhuvanesh', role: 'Executive Coordinator', icon: 'gear' },
+];
+
+const techTeam = [
+	{ name: 'Prem Dharshan', role: 'Director', icon: 'atom' },
+	{ name: 'Mithun', role: 'Coordinator', icon: 'satellite' },
+	{ name: 'Ajay', role: 'Member', icon: 'sparkle' },
+];
+---
+
+<section class="team">
+	<div class="container">
+		<div class="team-head" data-reveal="fade">
+			<p class="eyebrow">Behind the Timeline</p>
+			<h2 class="section-title">The hands that <em>keep the clock</em></h2>
+		</div>
+
+		<div class="team-block" data-reveal="fade">
+			<h3 class="team-block-title">Office Bearers</h3>
+			<div class="team-row">
+				{officeBearers.map((p) => (
+					<div class="team-card">
+						<div class="team-icon"><Icon name={p.icon} /></div>
+						<span class="team-name">{p.name}</span>
+						<span class="team-role">{p.role}</span>
+					</div>
+				))}
+			</div>
+		</div>
+
+		<div class="team-block" data-reveal="fade">
+			<h3 class="team-block-title">Tech Team</h3>
+			<div class="team-row">
+				{techTeam.map((p) => (
+					<div class="team-card future">
+						<div class="team-icon"><Icon name={p.icon} /></div>
+						<span class="team-name">{p.name}</span>
+						<span class="team-role">{p.role}</span>
+					</div>
+				))}
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	.team {
+		padding: 6rem 0;
+	}
+
+	.team-head {
+		text-align: center;
+		margin-bottom: 3.5rem;
+	}
+
+	.team-block {
+		margin-bottom: 3rem;
+	}
+
+	.team-block-title {
+		font-family: var(--font-body);
+		font-size: 0.78rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		margin-bottom: 1.4rem;
+		text-align: center;
+	}
+
+	.team-row {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 1.2rem;
+	}
+
+	.team-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.6rem;
+		width: 11rem;
+		padding: 1.6rem 1rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(20, 21, 42, 0.5), transparent);
+		transition: transform 0.4s var(--ease-out), border-color 0.4s;
+	}
+
+	.team-card:hover {
+		transform: translateY(-6px);
+		border-color: var(--gold-dim);
+	}
+
+	.team-card.future:hover {
+		border-color: var(--future-2);
+	}
+
+	.team-icon {
+		width: 3rem;
+		height: 3rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 1.4rem;
+	}
+
+	.team-card.future .team-icon {
+		color: var(--future-2);
+		border-color: color-mix(in srgb, var(--future-2) 40%, transparent);
+	}
+
+	.team-name {
+		font-family: var(--font-display);
+		font-size: 0.95rem;
+		text-align: center;
+	}
+
+	.team-role {
+		font-size: 0.72rem;
+		color: var(--ink-faint);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		text-align: center;
+	}
+</style>

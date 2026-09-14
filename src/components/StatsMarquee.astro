@@ -1,0 +1,81 @@
+---
+import Icon from './Icon.astro';
+const items = [
+	{ icon: 'laurel', text: '3,200+ past participants' },
+	{ icon: 'compass', text: '40+ colleges represented' },
+	{ icon: 'coin', text: '₹1,50,000 total prize pool' },
+	{ icon: 'sundial', text: '10 arenas across 2 days' },
+	{ icon: 'star', text: 'Sep 25–26, 2026' },
+	{ icon: 'column', text: 'PSG College of Technology' },
+];
+---
+
+<div class="marquee-wrap" aria-hidden="true">
+	<div class="marquee">
+		{[...items, ...items].map((it) => (
+			<span class="m-item">
+				<Icon name={it.icon} />
+				{it.text}
+			</span>
+		))}
+	</div>
+</div>
+
+<style>
+	.marquee-wrap {
+		border-top: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		background: linear-gradient(90deg, var(--void), var(--deep-2), var(--void));
+		overflow: hidden;
+		padding: 1.1rem 0;
+		position: relative;
+	}
+
+	.marquee-wrap::before,
+	.marquee-wrap::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 8%;
+		z-index: 2;
+		pointer-events: none;
+	}
+
+	.marquee-wrap::before {
+		left: 0;
+		background: linear-gradient(90deg, var(--void), transparent);
+	}
+
+	.marquee-wrap::after {
+		right: 0;
+		background: linear-gradient(-90deg, var(--void), transparent);
+	}
+
+	.marquee {
+		display: flex;
+		width: max-content;
+		gap: 3rem;
+		animation: marquee 32s linear infinite;
+	}
+
+	.marquee-wrap:hover .marquee {
+		animation-play-state: paused;
+	}
+
+	.m-item {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		font-family: var(--font-display);
+		font-size: 0.95rem;
+		letter-spacing: 0.04em;
+		color: var(--ink-dim);
+		white-space: nowrap;
+	}
+
+	.m-item .icon {
+		color: var(--gold);
+		font-size: 1.2rem;
+	}
+</style>

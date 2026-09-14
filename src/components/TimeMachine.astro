@@ -1,0 +1,829 @@
+---
+import Icon from './Icon.astro';
+import { events, type AxiosEvent } from '../data/events';
+
+interface ScheduleEntry {
+	key: string;
+	eventKey: string;
+	name: string;
+	icon: string;
+	category: AxiosEvent['category'];
+	round: string;
+	roundTitle: string;
+	day: string;
+	startLabel: string;
+	endLabel: string;
+	startMinutes: number;
+	endMinutes: number;
+	location: string;
+}
+
+const parseTime = (hhmm: string) => {
+	const [h, m] = hhmm.split(':').map(Number);
+	return h * 60 + m;
+};
+
+const schedule: ScheduleEntry[] = events.flatMap((ev) =>
+	ev.timeline.map((row, i) => {
+		const [startLabel, endLabel] = row.time.split(/[–—-]/).map((s) => s.trim());
+		const roundIndex = parseInt(row.r.replace(/\D/g, ''), 10) - 1;
+		return {
+			key: `${ev.key}-${row.r}`,
+			eventKey: ev.key,
+			name: ev.name,
+			icon: ev.icon,
+			category: ev.category,
+			round: row.r,
+			roundTitle: ev.rounds[roundIndex]?.t ?? row.r,
+			day: row.day,
+			startLabel,
+			endLabel,
+			startMinutes: parseTime(startLabel),
+			endMinutes: parseTime(endLabel),
+			location: row.loc,
+		};
+	})
+);
+
+const days = Array.from(new Set(schedule.map((s) => s.day))).sort();
+const categories: AxiosEvent['category'][] = ['Technical', 'Non Technical', 'Gaming'];
+
+const DAY_START = 8 * 60;
+const DAY_END = 18 * 60;
+const DAY_RANGE = DAY_END - DAY_START;
+const DAY_COL_WIDTH = 1450;
+const MIN_BLOCK_WIDTH = 92;
+const hours = Array.from({ length: (DAY_END - DAY_START) / 60 + 1 }, (_, i) => DAY_START / 60 + i);
+const fmtHour = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
+
+const entriesFor = (day: string, cat: string) => schedule.filter((s) => s.day === day && s.category === cat);
+const catSlug = (cat: string) => cat.toLowerCase().replace(/\s+/g, '-');
+
+interface Props {
+	// renders a second, inert copy of just the schedule grid — no ids (so the script below,
+	// which is hoisted once per page by Astro regardless of how many times this component is
+	// rendered, only ever wires up the real instance), no modal, no scroll/pin behaviour. Used
+	// by EventsCinema's tunnel to show a static preview of this section without it fighting
+	// the real one for the same DOM ids or corrupting its day/readout math.
+	preview?: boolean;
+}
+
+const { preview = false } = Astro.props;
+---
+
+<section class:list={['tm', preview && 'tm-preview']} id={preview ? undefined : 'schedule'} aria-hidden={preview ? 'true' : undefined}>
+	{!preview && (
+		<div class="tm-intro container" data-reveal="fade">
+			<p class="eyebrow">The Schedule</p>
+			<h2 class="section-title">The <em>Time</em> Machine</h2>
+			<p class="lede">Scroll to move through time — two days, ten arenas, mapped minute by minute.</p>
+		</div>
+	)}
+
+	<div class="tm-pin" id={preview ? undefined : 'tm-pin'}>
+		<div class="tm-stage">
+			<div class="tm-header container">
+				<span class="tm-header-label">Scroll to move through time</span>
+				<span class="tm-readout" id={preview ? undefined : 'tm-readout'}>{days[0]} &middot; {fmtHour(DAY_START / 60)}</span>
+			</div>
+
+			<div class="tm-hand" id={preview ? undefined : 'tm-hand'} aria-hidden="true"></div>
+
+			<div class="tm-viewport">
+				<div class="tm-track" id={preview ? undefined : 'tm-track'}>
+					{days.map((day) => (
+						<div class="tm-day" style={`width:${DAY_COL_WIDTH}px`}>
+							<div class="tm-day-label">{day}</div>
+							<div class="tm-axis" aria-hidden="true">
+								{hours.map((h) => (
+									<span>{fmtHour(h)}</span>
+								))}
+							</div>
+							<div class="tm-lanes">
+								{categories.map((cat) => (
+									<div class="tm-lane" data-cat={catSlug(cat)}>
+										<span class="tm-lane-label">{cat}</span>
+										<div
+											class="tm-lane-track"
+											style={`background-size: ${(60 / DAY_RANGE) * DAY_COL_WIDTH}px 100%;`}
+										>
+											{entriesFor(day, cat).map((entry) => {
+												const left = ((entry.startMinutes - DAY_START) / DAY_RANGE) * DAY_COL_WIDTH;
+												const width = Math.max(
+													((entry.endMinutes - entry.startMinutes) / DAY_RANGE) * DAY_COL_WIDTH,
+													MIN_BLOCK_WIDTH
+												);
+												return (
+													<button
+														type="button"
+														class="tm-block"
+														data-cat={catSlug(cat)}
+														style={`left:${left}px; width:${width}px;`}
+														data-key={entry.key}
+														data-event={entry.eventKey}
+														data-icon={entry.icon}
+														data-name={entry.name}
+														data-category={entry.category}
+														data-round={entry.round}
+														data-round-title={entry.roundTitle}
+														data-day={entry.day}
+														data-time={`${entry.startLabel}–${entry.endLabel}`}
+														data-loc={entry.location}
+													>
+														<span class="tm-block-name">{entry.name}</span>
+														<span class="tm-block-meta">{entry.startLabel}&ndash;{entry.endLabel} &middot; {entry.location}</span>
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					))}
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- mobile / reduced-motion fallback: plain vertical accordion, no scroll-jacking.
+	     Skipped for the preview instance — the tunnel that embeds it is desktop-only already. -->
+	{!preview && (
+		<div class="tm-mobile container">
+			{days.map((day, i) => (
+				<details class="tm-day-acc" open={i === 0}>
+					<summary>
+						<span>{day}</span>
+						<Icon name="chevron-down" class="tm-acc-chevron" />
+					</summary>
+					<ul class="tm-list">
+						{schedule
+							.filter((s) => s.day === day)
+							.sort((a, b) => a.startMinutes - b.startMinutes)
+							.map((entry) => (
+								<li>
+									<button
+										type="button"
+										class="tm-row"
+										data-cat={catSlug(entry.category)}
+										data-key={entry.key}
+										data-event={entry.eventKey}
+										data-icon={entry.icon}
+										data-name={entry.name}
+										data-category={entry.category}
+										data-round={entry.round}
+										data-round-title={entry.roundTitle}
+										data-day={entry.day}
+										data-time={`${entry.startLabel}–${entry.endLabel}`}
+										data-loc={entry.location}
+									>
+										<span class="tm-row-time">{entry.startLabel}&ndash;{entry.endLabel}</span>
+										<span class="tm-row-body">
+											<span class="tm-row-name">{entry.name}</span>
+											<span class="tm-row-meta">{entry.roundTitle} &middot; {entry.location}</span>
+										</span>
+									</button>
+								</li>
+							))}
+					</ul>
+				</details>
+			))}
+		</div>
+	)}
+</section>
+
+{!preview && (
+	<Fragment>
+		<div class="tm-icon-registry" hidden aria-hidden="true">
+			{Array.from(new Set(events.map((e) => e.icon))).map((iconName) => (
+				<span data-icon-src={iconName}><Icon name={iconName} /></span>
+			))}
+		</div>
+
+		<div class="tm-modal" id="tm-modal" aria-hidden="true">
+			<div class="tm-modal-backdrop" id="tm-modal-backdrop"></div>
+			<div class="tm-modal-panel" role="dialog" aria-modal="true" aria-labelledby="tm-modal-name">
+				<button type="button" class="tm-modal-close" id="tm-modal-close" aria-label="Close">&times;</button>
+				<div class="tm-modal-icon" id="tm-modal-icon"></div>
+				<p class="tm-modal-tag" id="tm-modal-tag"></p>
+				<h3 id="tm-modal-name"></h3>
+				<p class="tm-modal-round" id="tm-modal-round"></p>
+				<dl class="tm-modal-meta">
+					<div><dt>When</dt><dd id="tm-modal-when"></dd></div>
+					<div><dt>Where</dt><dd id="tm-modal-loc"></dd></div>
+				</dl>
+				<a class="btn ghost" id="tm-modal-link" href="#lineup">See full details</a>
+			</div>
+		</div>
+	</Fragment>
+)}
+
+<script>
+	import { gsap } from 'gsap';
+	import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	// scoped to the real instance only: the query excludes .tm-preview, so a second,
+	// inert render of this component elsewhere on the page (see the `preview` prop)
+	// never gets counted into the day/readout math or wired up for clicks.
+	const root = document.querySelector<HTMLElement>('.tm:not(.tm-preview)');
+
+	const pin = document.getElementById('tm-pin');
+	const track = document.getElementById('tm-track');
+	const hand = document.getElementById('tm-hand');
+	const readout = document.getElementById('tm-readout');
+
+	const DAY_START = 8 * 60;
+	const DAY_RANGE = 600;
+	const dayLabels = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day-label') ?? []).map((el) => el.textContent || '');
+	const numDays = Math.max(1, dayLabels.length);
+
+	const fmt = (mins: number) => {
+		const h = Math.floor(mins / 60) % 24;
+		const m = Math.floor(mins % 60);
+		return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+	};
+
+	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	// entrance: this section starts scaled down — as if it's still the last thing sitting
+	// inside the grid above — and grows to full size as you scroll into it. Pinned (a real
+	// GSAP pin, not a manual position hack) for that stretch, so the growth reads as
+	// controlled rather than a passive scroll reveal. The instant it reaches full scale,
+	// GSAP's own pin release hands scroll back to normal — no jump, no DOM move, because
+	// this section never leaves its natural place in the page; only its transform changes.
+	const isDesktop = window.matchMedia('(min-width: 901px)').matches;
+	if (root && !prefersReducedMotion && isDesktop) {
+		gsap.set(root, { scale: 0.32, transformOrigin: '50% 50%' });
+		ScrollTrigger.create({
+			trigger: root,
+			start: 'top bottom',
+			end: () => '+=' + window.innerHeight,
+			pin: true,
+			scrub: 1,
+			invalidateOnRefresh: true,
+			onUpdate: (self) => gsap.set(root, { scale: gsap.utils.interpolate(0.32, 1, self.progress) }),
+		});
+	}
+
+	let scrollDistance = 0;
+	const HAND_INSET = 40;
+
+	const measure = () => {
+		if (!pin || !track) return;
+		const vh = window.innerHeight;
+		const vw = window.innerWidth;
+		scrollDistance = Math.max(0, track.scrollWidth - vw);
+		pin.style.height = `${vh + scrollDistance}px`;
+	};
+
+	const update = () => {
+		if (!pin || !track) return;
+		const rect = pin.getBoundingClientRect();
+		const vh = window.innerHeight;
+		const total = rect.height - vh;
+		let progress = total > 0 ? -rect.top / total : 0;
+		progress = Math.min(1, Math.max(0, progress));
+
+		track.style.transform = `translateX(${-progress * scrollDistance}px)`;
+
+		if (hand) {
+			const vw = window.innerWidth;
+			const travel = Math.max(0, vw - HAND_INSET * 2);
+			hand.style.transform = `translateX(${HAND_INSET + progress * travel}px)`;
+		}
+
+		if (readout) {
+			const totalMinutesScrubbed = progress * DAY_RANGE * numDays;
+			const dayIndex = Math.min(numDays - 1, Math.floor(totalMinutesScrubbed / DAY_RANGE));
+			const minuteOfDay = DAY_START + (totalMinutesScrubbed - dayIndex * DAY_RANGE);
+			readout.textContent = `${dayLabels[dayIndex] || `Day ${dayIndex + 1}`} · ${fmt(minuteOfDay)}`;
+		}
+	};
+
+	if (!prefersReducedMotion) {
+		measure();
+		update();
+		document.addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+		window.addEventListener('resize', () => {
+			measure();
+			update();
+		});
+	}
+
+	// --- detail modal, shared by desktop blocks and mobile rows ---
+	const modal = document.getElementById('tm-modal');
+	// reparent to <body> so its position:fixed anchors to the real viewport regardless
+	// of where in the DOM this component ends up.
+	if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+	const modalIcon = document.getElementById('tm-modal-icon');
+	const modalTag = document.getElementById('tm-modal-tag');
+	const modalName = document.getElementById('tm-modal-name');
+	const modalRound = document.getElementById('tm-modal-round');
+	const modalWhen = document.getElementById('tm-modal-when');
+	const modalLoc = document.getElementById('tm-modal-loc');
+
+	let lastFocused: HTMLElement | null = null;
+
+	const openModal = (btn: HTMLElement) => {
+		const d = btn.dataset;
+		if (modalIcon) {
+			const src = d.icon ? document.querySelector(`[data-icon-src="${d.icon}"]`) : null;
+			modalIcon.innerHTML = src ? src.innerHTML : '';
+		}
+		if (modalTag) modalTag.textContent = d.category || '';
+		if (modalName) modalName.textContent = d.name || '';
+		if (modalRound) modalRound.textContent = d.roundTitle || '';
+		if (modalWhen) modalWhen.textContent = `${d.day} · ${d.time}`;
+		if (modalLoc) modalLoc.textContent = d.loc || '';
+		lastFocused = document.activeElement as HTMLElement;
+		modal?.classList.add('is-open');
+		modal?.setAttribute('aria-hidden', 'false');
+		document.body.style.overflow = 'hidden';
+		(document.getElementById('tm-modal-close') as HTMLElement | null)?.focus();
+	};
+
+	const closeModal = () => {
+		modal?.classList.remove('is-open');
+		modal?.setAttribute('aria-hidden', 'true');
+		document.body.style.overflow = '';
+		lastFocused?.focus();
+	};
+
+	root?.querySelectorAll<HTMLElement>('.tm-block, .tm-row').forEach((btn) => {
+		btn.addEventListener('click', () => openModal(btn));
+	});
+
+	document.getElementById('tm-modal-close')?.addEventListener('click', closeModal);
+	document.getElementById('tm-modal-backdrop')?.addEventListener('click', closeModal);
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape' && modal?.classList.contains('is-open')) closeModal();
+	});
+</script>
+
+<style>
+	.tm {
+		position: relative;
+		background: linear-gradient(180deg, var(--deep-2), var(--void) 15%, var(--void) 85%, var(--deep-2));
+		padding-top: 6rem;
+	}
+
+	.tm-intro {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		margin-bottom: 3rem;
+	}
+
+	/* --- pinned desktop scrub --- */
+	.tm-pin {
+		position: relative;
+		height: 400vh;
+	}
+
+	.tm-stage {
+		position: sticky;
+		top: 0;
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	/* the preview instance never runs the pin/scrub script above (it has no ids for that
+	   script to find), so it doesn't need — and shouldn't keep — the tall scroll runway or
+	   the sticky pin: both are meaningless without the JS driving them, and left in place
+	   they'd just make an oversized, inert copy sit behind whatever embeds it. */
+	.tm-preview .tm-pin {
+		height: auto;
+	}
+
+	.tm-preview .tm-stage {
+		position: static;
+		height: auto;
+	}
+
+	.tm-preview {
+		pointer-events: none;
+	}
+
+	.tm-header {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		width: 100%;
+		margin-bottom: 1.4rem;
+		font-family: var(--font-display);
+	}
+
+	.tm-header-label {
+		font-size: 0.7rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.tm-readout {
+		font-size: 0.95rem;
+		letter-spacing: 0.12em;
+		color: var(--gold-bright);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.tm-hand {
+		position: absolute;
+		top: 5.5rem;
+		bottom: 3rem;
+		width: 2px;
+		background: linear-gradient(180deg, transparent, var(--gold-bright) 12%, var(--gold-bright) 88%, transparent);
+		box-shadow: 0 0 14px rgba(238, 200, 122, 0.65), 0 0 28px rgba(238, 200, 122, 0.3);
+		will-change: transform;
+		pointer-events: none;
+		z-index: 4;
+	}
+
+	.tm-hand::before {
+		content: '';
+		position: absolute;
+		top: -5px;
+		left: 50%;
+		width: 8px;
+		height: 8px;
+		transform: translateX(-50%) rotate(45deg);
+		background: var(--gold-bright);
+		box-shadow: 0 0 10px rgba(238, 200, 122, 0.7);
+	}
+
+	.tm-viewport {
+		overflow: hidden;
+	}
+
+	.tm-track {
+		display: flex;
+		will-change: transform;
+		padding-left: clamp(1.25rem, 4vw, 3rem);
+	}
+
+	.tm-day {
+		flex: 0 0 auto;
+		padding-right: clamp(2.5rem, 6vw, 5rem);
+	}
+
+	.tm-day-label {
+		font-family: var(--font-display-deco);
+		font-size: 1.6rem;
+		font-weight: 700;
+		color: var(--ink);
+		margin-bottom: 0.9rem;
+	}
+
+	.tm-axis {
+		display: flex;
+		justify-content: space-between;
+		padding-bottom: 0.5rem;
+		margin-bottom: 0.6rem;
+		border-bottom: 1px solid var(--line);
+		font-family: var(--font-body);
+		font-size: 0.68rem;
+		letter-spacing: 0.04em;
+		color: var(--ink-faint);
+	}
+
+	.tm-lanes {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+	}
+
+	.tm-lane {
+		position: relative;
+	}
+
+	.tm-lane[data-cat='technical'] {
+		--cat-accent: var(--gold-bright);
+	}
+
+	.tm-lane[data-cat='non-technical'] {
+		--cat-accent: var(--future);
+	}
+
+	.tm-lane[data-cat='gaming'] {
+		--cat-accent: #e08a5a;
+	}
+
+	.tm-lane-label {
+		display: block;
+		font-family: var(--font-body);
+		font-size: 0.62rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--cat-accent);
+		opacity: 0.85;
+		margin-bottom: 0.4rem;
+	}
+
+	.tm-lane-track {
+		position: relative;
+		height: 4.4rem;
+		border-radius: 8px;
+		background-color: rgba(255, 255, 255, 0.015);
+		background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px);
+		background-repeat: repeat-y;
+	}
+
+	.tm-block {
+		position: absolute;
+		top: 6px;
+		bottom: 6px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 0.2rem;
+		padding: 0.5rem 0.7rem;
+		border-radius: 6px;
+		border: 1px solid var(--cat-accent);
+		background: color-mix(in srgb, var(--cat-accent) 12%, var(--panel-solid));
+		color: var(--ink);
+		text-align: left;
+		cursor: pointer;
+		overflow: hidden;
+		font-family: var(--font-body);
+		transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+	}
+
+	.tm-block:hover,
+	.tm-block:focus-visible {
+		background: color-mix(in srgb, var(--cat-accent) 26%, var(--panel-solid));
+		transform: translateY(-2px);
+	}
+
+	.tm-block-name {
+		font-size: 0.8rem;
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.tm-block-meta {
+		font-size: 0.66rem;
+		color: var(--ink-faint);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* --- mobile / reduced-motion fallback --- */
+	.tm-mobile {
+		display: none;
+	}
+
+	.tm-day-acc {
+		border-bottom: 1px solid var(--line);
+	}
+
+	.tm-day-acc summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.1rem 0.2rem;
+		font-family: var(--font-display-deco);
+		font-size: 1.2rem;
+		font-weight: 700;
+		color: var(--ink);
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.tm-day-acc summary::-webkit-details-marker {
+		display: none;
+	}
+
+	:global(.tm-acc-chevron) {
+		color: var(--gold);
+		transition: transform 0.3s var(--ease-out);
+	}
+
+	.tm-day-acc[open] :global(.tm-acc-chevron) {
+		transform: rotate(180deg);
+	}
+
+	.tm-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		padding-bottom: 1.2rem;
+	}
+
+	.tm-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.9rem;
+		width: 100%;
+		padding: 0.7rem 0.8rem;
+		border: 1px solid var(--line);
+		border-left: 3px solid var(--cat-accent, var(--gold-dim));
+		border-radius: 8px;
+		background: rgba(16, 32, 23, 0.3);
+		color: var(--ink);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.tm-row[data-cat='technical'] {
+		--cat-accent: var(--gold-bright);
+	}
+
+	.tm-row[data-cat='non-technical'] {
+		--cat-accent: var(--future);
+	}
+
+	.tm-row[data-cat='gaming'] {
+		--cat-accent: #e08a5a;
+	}
+
+	.tm-row-time {
+		flex: 0 0 auto;
+		font-family: var(--font-body);
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--cat-accent);
+		padding-top: 0.15rem;
+	}
+
+	.tm-row-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.tm-row-name {
+		font-size: 0.92rem;
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.tm-row-meta {
+		font-size: 0.72rem;
+		color: var(--ink-faint);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+		.tm-pin {
+			display: none;
+		}
+		.tm-mobile {
+			display: block;
+		}
+	}
+
+	/* --- shared event detail modal --- */
+	.tm-modal {
+		position: fixed;
+		inset: 0;
+		z-index: 500;
+		display: grid;
+		place-items: center;
+		padding: 1.5rem;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.25s var(--ease-out);
+	}
+
+	.tm-modal.is-open {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.tm-modal-backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgba(3, 6, 4, 0.78);
+		backdrop-filter: blur(6px);
+	}
+
+	.tm-modal-panel {
+		position: relative;
+		width: min(420px, 100%);
+		padding: 2rem;
+		border: 1px solid var(--gold-dim);
+		border-radius: var(--radius);
+		background: var(--panel-solid);
+		box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+		transform: translateY(12px) scale(0.98);
+		transition: transform 0.25s var(--ease-out);
+	}
+
+	.tm-modal.is-open .tm-modal-panel {
+		transform: translateY(0) scale(1);
+	}
+
+	.tm-modal-close {
+		position: absolute;
+		top: 0.9rem;
+		right: 0.9rem;
+		width: 2rem;
+		height: 2rem;
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--line);
+		border-radius: 50%;
+		background: transparent;
+		color: var(--ink-faint);
+		font-size: 1.2rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.tm-modal-close:hover {
+		color: var(--gold);
+		border-color: var(--gold-dim);
+	}
+
+	.tm-modal-icon {
+		width: 3rem;
+		height: 3rem;
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--gold-dim);
+		border-radius: 50%;
+		color: var(--gold);
+		font-size: 1.4rem;
+		margin-bottom: 1rem;
+	}
+
+	.tm-modal-icon :global(svg) {
+		width: 1em;
+		height: 1em;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		fill: none;
+	}
+
+	.tm-modal-tag {
+		font-family: var(--font-body);
+		font-size: 0.66rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--gold);
+		margin-bottom: 0.4rem;
+	}
+
+	.tm-modal-panel h3 {
+		font-family: var(--font-display-deco);
+		font-size: 1.5rem;
+		margin-bottom: 0.3rem;
+	}
+
+	.tm-modal-round {
+		font-family: var(--font-serif);
+		font-style: italic;
+		color: var(--ink-dim);
+		margin-bottom: 1.2rem;
+	}
+
+	.tm-modal-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		margin: 0 0 1.4rem;
+		padding: 1rem;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+	}
+
+	.tm-modal-meta div {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.tm-modal-meta dt {
+		font-size: 0.68rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.tm-modal-meta dd {
+		margin: 0;
+		text-align: right;
+		font-size: 0.85rem;
+		color: var(--ink);
+	}
+
+	#tm-modal-link {
+		width: 100%;
+		justify-content: center;
+	}
+</style>

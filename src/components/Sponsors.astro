@@ -1,0 +1,150 @@
+---
+import Icon from './Icon.astro';
+
+const previous = [
+	'Wavicle Data Solutions', 'Foxsense Innovations', 'The Cloud Company',
+	'Shankar IAS Academy', 'Zee Taurus', 'Triumph Hub', 'Frozen Stick', 'Speed Step',
+];
+---
+
+<section class="sponsors" id="sponsors">
+	<div class="container">
+		<div class="sp-head" data-reveal="fade">
+			<p class="eyebrow">Partners</p>
+			<h2 class="section-title">Backed across <em>every era</em></h2>
+		</div>
+
+		<div class="sp-titles">
+			<div class="sp-title-card" data-reveal="left">
+				<span class="sp-kicker">Title Sponsor</span>
+				<span class="sp-name">Arcesium</span>
+				<Icon name="laurel" />
+			</div>
+			<div class="sp-title-card alt" data-reveal="right">
+				<span class="sp-kicker">Title Co-Sponsor</span>
+				<span class="sp-name">KLA</span>
+				<Icon name="laurel" />
+			</div>
+		</div>
+
+		<div class="sp-prev" data-reveal="fade">
+			<span class="sp-prev-label">Previous Editions Trusted Us</span>
+			<div class="sp-ticker-wrap">
+				<div class="sp-ticker">
+					{[...previous, ...previous].map((s) => (
+						<span>{s}</span>
+					))}
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<style>
+	.sponsors {
+		padding: 6rem 0;
+		background: linear-gradient(180deg, var(--void), var(--deep-2));
+	}
+
+	.sp-head {
+		text-align: center;
+		margin-bottom: 3rem;
+	}
+
+	.sp-titles {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5rem;
+		max-width: 760px;
+		margin: 0 auto 3.5rem;
+	}
+
+	.sp-title-card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 2.4rem 1.5rem;
+		border: 1px solid var(--gold-dim);
+		border-radius: var(--radius);
+		text-align: center;
+		background: linear-gradient(160deg, rgba(201, 154, 63, 0.08), transparent);
+	}
+
+	.sp-title-card.alt {
+		border-color: color-mix(in srgb, var(--future-2) 45%, transparent);
+		background: linear-gradient(160deg, rgba(63, 174, 116, 0.08), transparent);
+	}
+
+	.sp-kicker {
+		font-size: 0.68rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.sp-name {
+		font-family: var(--font-display-deco);
+		font-size: clamp(1.6rem, 4vw, 2.2rem);
+		color: var(--gold-bright);
+	}
+
+	.sp-title-card.alt .sp-name {
+		color: var(--future-2);
+	}
+
+	.sp-title-card .icon {
+		font-size: 1.6rem;
+		color: var(--gold);
+		opacity: 0.6;
+	}
+
+	.sp-title-card.alt .icon {
+		color: var(--future-2);
+	}
+
+	.sp-prev {
+		text-align: center;
+	}
+
+	.sp-prev-label {
+		display: block;
+		font-size: 0.72rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		margin-bottom: 1.4rem;
+	}
+
+	.sp-ticker-wrap {
+		overflow: hidden;
+		position: relative;
+		mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+	}
+
+	.sp-ticker {
+		display: flex;
+		width: max-content;
+		gap: 3.5rem;
+		animation: marquee 26s linear infinite reverse;
+	}
+
+	.sp-ticker-wrap:hover .sp-ticker {
+		animation-play-state: paused;
+	}
+
+	.sp-ticker span {
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-size: 1.15rem;
+		color: var(--ink-faint);
+		white-space: nowrap;
+	}
+
+	@media (max-width: 620px) {
+		.sp-titles {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

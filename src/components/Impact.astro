@@ -1,0 +1,170 @@
+---
+import Icon from './Icon.astro';
+
+const secondary = [
+	{ icon: 'column', value: 40, suffix: '+', label: 'Colleges Represented' },
+	{ icon: 'sundial', value: 10, suffix: '', label: 'Arenas, Two Days' },
+	{ icon: 'hourglass', value: 3, suffix: 'rd', label: 'Edition Running' },
+];
+---
+
+<section class="impact">
+	<div class="impact-glow" aria-hidden="true"></div>
+	<div class="container impact-grid">
+		<div class="impact-lead" data-reveal="left">
+			<p class="eyebrow">The Scale</p>
+			<div class="impact-big">
+				<span class="impact-num" data-count="3200" data-count-suffix="+">0</span>
+				<span class="impact-big-label">Past Participants<br />across two editions</span>
+			</div>
+		</div>
+
+		<div class="impact-secondary">
+			{secondary.map((s, i) => (
+				<div class="impact-card" data-reveal="scale" style={`--d:${i * 0.08}s`}>
+					<div class="impact-icon"><Icon name={s.icon} /></div>
+					<span class="impact-sec-num" data-count={s.value} data-count-suffix={s.suffix}>0</span>
+					<span class="impact-sec-label">{s.label}</span>
+				</div>
+			))}
+		</div>
+	</div>
+</section>
+
+<style>
+	.impact {
+		position: relative;
+		padding: 7rem 0;
+		overflow: hidden;
+		background: linear-gradient(180deg, var(--void), var(--deep) 50%, var(--void));
+	}
+
+	.impact-glow {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse 55% 45% at 15% 40%, rgba(201, 154, 63, 0.1), transparent 65%),
+			radial-gradient(ellipse 45% 40% at 85% 60%, rgba(63, 174, 116, 0.1), transparent 65%);
+		pointer-events: none;
+	}
+
+	.impact-grid {
+		position: relative;
+		display: grid;
+		grid-template-columns: 1.1fr 1fr;
+		gap: 3rem;
+		align-items: center;
+	}
+
+	.impact-lead {
+		display: flex;
+		flex-direction: column;
+		gap: 1.2rem;
+	}
+
+	.impact-big {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.impact-num {
+		font-family: var(--font-display-deco);
+		font-weight: 900;
+		font-size: clamp(4.5rem, 11vw, 8rem);
+		line-height: 0.9;
+		background: linear-gradient(135deg, var(--gold-bright) 10%, var(--gold) 45%, var(--future) 90%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+		filter: drop-shadow(0 0 40px rgba(63, 174, 116, 0.2));
+	}
+
+	.impact-big-label {
+		margin-top: 0.8rem;
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-size: 1.15rem;
+		color: var(--ink-dim);
+		line-height: 1.5;
+	}
+
+	.impact-secondary {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1.2rem;
+	}
+
+	.impact-card {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+		padding: 1.6rem 1.4rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: rgba(16, 32, 23, 0.3);
+		transition: border-color 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+	}
+
+	.impact-card:hover {
+		transform: translateY(-4px);
+		border-color: var(--gold-dim);
+	}
+
+	.impact-card:first-child {
+		grid-column: 1 / -1;
+	}
+
+	.impact-icon {
+		width: 2.6rem;
+		height: 2.6rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 1.2rem;
+	}
+
+	.impact-sec-num {
+		font-family: var(--font-display);
+		font-size: 2.2rem;
+		color: var(--gold-bright);
+	}
+
+	.impact-sec-label {
+		font-size: 0.78rem;
+		letter-spacing: 0.06em;
+		color: var(--ink-faint);
+		text-transform: uppercase;
+	}
+
+	@media (max-width: 860px) {
+		.impact-grid {
+			grid-template-columns: 1fr;
+			gap: 2.5rem;
+			text-align: center;
+		}
+		.impact-lead {
+			align-items: center;
+		}
+		.impact-secondary {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		.impact-card {
+			align-items: center;
+			text-align: center;
+		}
+		.impact-card:first-child {
+			grid-column: auto;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.impact-secondary {
+			grid-template-columns: 1fr;
+		}
+		.impact-card:first-child {
+			grid-column: auto;
+		}
+	}
+</style>

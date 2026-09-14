@@ -1,0 +1,245 @@
+---
+import Icon from './Icon.astro';
+import { events } from '../data/events';
+
+// Three real dossiers, told as feature stories rather than a teaser grid.
+const featured = events.find((e) => e.key === 'tri')!;
+const stories = [events.find((e) => e.key === 'brc')!, events.find((e) => e.key === 'svc')!, events.find((e) => e.key === 'bb')!];
+---
+
+<section class="editorial" id="editorial">
+	<div class="container editorial-head" data-reveal="fade">
+		<p class="eyebrow">From the Dossier</p>
+		<h2 class="section-title">Stories worth <em>reading twice</em></h2>
+		<p class="lede">Every arena has a narrative behind its rules. Here are four worth the extra minute.</p>
+	</div>
+
+	<div class="container editorial-grid">
+		<a class="editorial-feature" href={`#event-${featured.key}`} data-reveal="left">
+			<div class="ef-icon"><Icon name={featured.icon} /></div>
+			<span class="ef-tag">{featured.category} &middot; {featured.tag}</span>
+			<h3>{featured.name}</h3>
+			<p>{featured.about}</p>
+			<span class="ef-cta">Read the full dossier <Icon name="arrow-right" /></span>
+		</a>
+
+		<div class="editorial-side">
+			{stories.map((s, i) => (
+				<a class="editorial-card" href={`#event-${s.key}`} data-reveal="right" style={`--d:${i * 0.08}s`}>
+					<div class="ec-icon"><Icon name={s.icon} /></div>
+					<div class="ec-body">
+						<span class="ec-tag">{s.category}</span>
+						<h4>{s.name}</h4>
+						<p>{s.about}</p>
+					</div>
+					<Icon name="arrow-right" class="ec-arrow" />
+				</a>
+			))}
+		</div>
+	</div>
+</section>
+
+<style>
+	.editorial {
+		padding: 7rem 0;
+	}
+
+	.editorial-head {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		margin-bottom: 3.5rem;
+	}
+
+	.editorial-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr;
+		gap: 2rem;
+		align-items: stretch;
+	}
+
+	.editorial-feature {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.9rem;
+		padding: 2.6rem;
+		border: 1px solid var(--gold-dim);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(201, 154, 63, 0.1), rgba(10, 10, 20, 0.3) 60%);
+		overflow: hidden;
+		transition: transform 0.4s var(--ease-out), border-color 0.4s var(--ease-out);
+	}
+
+	.editorial-feature::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(circle at 90% 10%, rgba(63, 174, 116, 0.14), transparent 55%);
+		opacity: 0;
+		transition: opacity 0.5s var(--ease-out);
+	}
+
+	.editorial-feature:hover,
+	.editorial-feature:focus-visible {
+		transform: translateY(-6px);
+		border-color: var(--gold);
+	}
+
+	.editorial-feature:hover::before,
+	.editorial-feature:focus-visible::before {
+		opacity: 1;
+	}
+
+	.ef-icon {
+		width: 4rem;
+		height: 4rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 1.8rem;
+		background: rgba(5, 8, 6, 0.4);
+	}
+
+	.ef-tag {
+		font-size: 0.72rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--gold);
+	}
+
+	.editorial-feature h3 {
+		font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+	}
+
+	.editorial-feature p {
+		font-family: var(--font-serif);
+		font-size: 1.15rem;
+		color: var(--ink-dim);
+		line-height: 1.65;
+		max-width: 34em;
+	}
+
+	.ef-cta {
+		margin-top: auto;
+		padding-top: 0.6rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--gold-bright);
+	}
+
+	.ef-cta .icon {
+		transition: transform 0.4s var(--ease-out);
+	}
+
+	.editorial-feature:hover .ef-cta .icon {
+		transform: translateX(4px);
+	}
+
+	.editorial-side {
+		display: flex;
+		flex-direction: column;
+		gap: 1.1rem;
+	}
+
+	.editorial-card {
+		position: relative;
+		display: flex;
+		align-items: flex-start;
+		gap: 1rem;
+		padding: 1.4rem 1.5rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: rgba(20, 21, 42, 0.3);
+		flex: 1;
+		transition: border-color 0.35s var(--ease-out), transform 0.35s var(--ease-out), background 0.35s var(--ease-out);
+	}
+
+	.editorial-card:hover,
+	.editorial-card:focus-visible {
+		border-color: var(--gold-dim);
+		transform: translateX(4px);
+		background: rgba(20, 21, 42, 0.5);
+	}
+
+	.ec-icon {
+		flex: none;
+		width: 2.6rem;
+		height: 2.6rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--line);
+		color: var(--future-2);
+		font-size: 1.1rem;
+	}
+
+	.ec-body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.ec-tag {
+		font-size: 0.62rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.ec-body h4 {
+		font-family: var(--font-display);
+		font-size: 1.05rem;
+		margin-top: 0.2rem;
+	}
+
+	.ec-body p {
+		margin-top: 0.4rem;
+		font-family: var(--font-serif);
+		font-size: 0.92rem;
+		color: var(--ink-dim);
+		line-height: 1.5;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.ec-arrow {
+		flex: none;
+		align-self: center;
+		color: var(--ink-faint);
+		transition: transform 0.35s var(--ease-out), color 0.35s var(--ease-out);
+	}
+
+	.editorial-card:hover .ec-arrow,
+	.editorial-card:focus-visible .ec-arrow {
+		transform: translateX(4px);
+		color: var(--gold-bright);
+	}
+
+	@media (max-width: 900px) {
+		.editorial-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.editorial {
+			padding: 5rem 0;
+		}
+		.editorial-feature {
+			padding: 1.8rem;
+		}
+	}
+</style>

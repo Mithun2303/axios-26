@@ -1,0 +1,232 @@
+---
+import Icon from './Icon.astro';
+import { convenors } from '../data/events';
+---
+
+<section class="voices" id="voices">
+	<div class="container voices-head" data-reveal="fade">
+		<p class="eyebrow">The Voices</p>
+		<h2 class="section-title">Every arena has <em>an authority</em></h2>
+		<p class="lede">No keynote stage — just the people who designed each arena and will run it live.
+			Reach any of them directly with the number beside their name.</p>
+	</div>
+
+	<div class="voices-rail-wrap">
+		<div class="voices-rail" id="voices-rail">
+			{convenors.map((c) => (
+				<article class="voice-card">
+					<div class="voice-portrait">
+						<Icon name={c.events[0].icon} />
+					</div>
+					<h3 class="voice-name">{c.name}</h3>
+					<p class="voice-role">
+						{c.events.map((e) => e.name).join(' · ')}
+					</p>
+					<span class="voice-cat tag-chip">{c.events[0].category}</span>
+					<a class="voice-contact" href={`tel:${c.phone.replace(/\s/g, '')}`}>
+						<Icon name="phone" /> {c.phone}
+					</a>
+				</article>
+			))}
+		</div>
+	</div>
+
+	<div class="voices-hint container" aria-hidden="true">
+		<Icon name="arrow-right" />
+		<span>Drag to browse every convenor</span>
+	</div>
+</section>
+
+<script>
+	const rail = document.getElementById('voices-rail');
+	if (rail) {
+		let isDown = false;
+		let startX = 0;
+		let scrollStart = 0;
+		rail.addEventListener('pointerdown', (e) => {
+			isDown = true;
+			rail.setPointerCapture(e.pointerId);
+			startX = e.clientX;
+			scrollStart = rail.scrollLeft;
+			rail.classList.add('dragging');
+		});
+		rail.addEventListener('pointermove', (e) => {
+			if (!isDown) return;
+			rail.scrollLeft = scrollStart - (e.clientX - startX);
+		});
+		const stop = () => {
+			isDown = false;
+			rail.classList.remove('dragging');
+		};
+		rail.addEventListener('pointerup', stop);
+		rail.addEventListener('pointercancel', stop);
+		rail.addEventListener('pointerleave', stop);
+	}
+</script>
+
+<style>
+	.voices {
+		padding: 7rem 0 6rem;
+		position: relative;
+	}
+
+	.voices-head {
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.1rem;
+		margin-bottom: 3.5rem;
+	}
+
+	.voices-rail-wrap {
+		mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+	}
+
+	.voices-rail {
+		display: flex;
+		gap: 1.25rem;
+		overflow-x: auto;
+		scroll-snap-type: x proximity;
+		padding: 0.5rem clamp(1.25rem, 6vw, 10vw) 1.5rem;
+		cursor: grab;
+		scrollbar-width: none;
+	}
+
+	.voices-rail::-webkit-scrollbar {
+		display: none;
+	}
+
+	.voices-rail.dragging {
+		cursor: grabbing;
+		scroll-snap-type: none;
+	}
+
+	.voice-card {
+		flex: 0 0 auto;
+		scroll-snap-align: start;
+		width: 15.5rem;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.6rem;
+		padding: 1.8rem 1.5rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: linear-gradient(160deg, rgba(20, 21, 42, 0.55), rgba(10, 10, 20, 0.3));
+		transition: transform 0.4s var(--ease-out), border-color 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+	}
+
+	.voice-card:hover,
+	.voice-card:focus-within {
+		transform: translateY(-8px);
+		border-color: var(--gold-dim);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+	}
+
+	.voice-portrait {
+		width: 3.6rem;
+		height: 3.6rem;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		border: 1px solid var(--gold-dim);
+		color: var(--gold);
+		font-size: 1.6rem;
+		background: radial-gradient(circle at 35% 30%, rgba(201, 154, 63, 0.18), transparent 70%);
+		transition: transform 0.4s var(--ease-out);
+	}
+
+	.voice-card:hover .voice-portrait {
+		transform: scale(1.08) rotate(-4deg);
+	}
+
+	.voice-name {
+		font-family: var(--font-display);
+		font-size: 1.15rem;
+		margin-top: 0.2rem;
+	}
+
+	.voice-role {
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-size: 0.9rem;
+		color: var(--ink-dim);
+		line-height: 1.4;
+		min-height: 2.5em;
+	}
+
+	.voice-cat {
+		font-size: 0.65rem;
+	}
+
+	.voice-contact {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
+		margin-top: 0.4rem;
+		font-size: 0.82rem;
+		color: var(--gold);
+		opacity: 0;
+		transform: translateY(4px);
+		transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+	}
+
+	.voice-card:hover .voice-contact,
+	.voice-card:focus-within .voice-contact,
+	.voice-contact:focus-visible {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.voices-hint {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		justify-content: center;
+		margin-top: 1.2rem;
+		font-size: 0.72rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+	}
+
+	.voices-hint .icon {
+		color: var(--gold-dim);
+		animation: drift 1.8s ease-in-out infinite;
+	}
+
+	@media (hover: hover) {
+		.voice-contact {
+			opacity: 0;
+		}
+	}
+
+	@media (hover: none) {
+		.voice-contact {
+			opacity: 1;
+			transform: none;
+		}
+		.voices-hint {
+			display: none;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.voices {
+			padding: 5rem 0 4rem;
+		}
+		.voice-card {
+			width: 13rem;
+			padding: 1.4rem 1.2rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.voice-card,
+		.voice-portrait,
+		.voice-contact {
+			transition: none;
+		}
+	}
+</style>

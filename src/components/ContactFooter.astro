@@ -1,0 +1,291 @@
+---
+import Icon from './Icon.astro';
+
+const REG_URL = 'https://proleap.ewhizard.tech/join/EvB_iLQ2bm';
+const CAL_URL = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=AXIOS%20%2726%20%C2%B7%20Achronos&dates=20260925T090000/20260926T180000&details=AXIOS%20%2726%20%E2%80%94%20CSA%20Technical%20Symposium&location=PSG%20College%20of%20Technology%2C%20Coimbatore';
+const contacts = [
+	{ name: 'Dinesh', role: 'Secretary' },
+	{ name: 'Ashvanth Kumar', role: 'Treasurer' },
+	{ name: 'Prem Dharshan', role: 'Tech Director' },
+	{ name: 'Ravi Varma', role: 'Convenor' },
+];
+---
+
+<section class="cta">
+	<div class="cta-glow" aria-hidden="true"></div>
+	<div class="cta-ticks" aria-hidden="true"></div>
+	<div class="container cta-inner" data-reveal="scale">
+		<Icon name="infinity" class="cta-mark" />
+		<h2 class="section-title">The gates open <em>Sep 25</em></h2>
+		<p class="lede">Register once, walk through every arena you choose. Bring your college ID, your QR, and your best idea.</p>
+		<div class="cta-actions">
+			<a class="btn" href={REG_URL} target="_blank" rel="noopener">Register for Axios '26 <Icon name="arrow-right" /></a>
+			<a class="btn ghost" href={CAL_URL} target="_blank" rel="noopener"><Icon name="calendar" /> Add to calendar</a>
+		</div>
+	</div>
+</section>
+
+<footer class="site-footer">
+	<div class="container footer-grid">
+		<div class="footer-brand" data-reveal="fade">
+			<div class="brand-mark"><img src="/logo-chronos-mark.png" alt="Axios '26 emblem" /></div>
+			<p class="footer-tagline">ACHRONOS — Beyond Time.<br />A place where the past inspires us, the
+				present challenges us, and the future is waiting to be created.</p>
+			<div class="socials">
+				<a href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">IG</a>
+				<a href="https://linkedin.com" target="_blank" rel="noopener" aria-label="LinkedIn">IN</a>
+			</div>
+		</div>
+
+		<div class="footer-col" data-reveal="fade">
+			<h4><Icon name="map-pin" /> Venue</h4>
+			<p>PSG College of Technology<br />Avinashi Rd, Peelamedu<br />Coimbatore, Tamil Nadu 641004</p>
+			<a class="map-link" href="https://maps.google.com/?q=PSG+College+of+Technology+Coimbatore" target="_blank" rel="noopener">
+				Open in Maps <Icon name="arrow-right" />
+			</a>
+		</div>
+
+		<div class="footer-col" data-reveal="fade">
+			<h4><Icon name="phone" /> Contact Desk</h4>
+			<ul class="contact-list">
+				{contacts.map((c) => (
+					<li><span>{c.name}</span><em>{c.role}</em></li>
+				))}
+				<li class="contact-note">Reach out via the register link above for phone/email support.</li>
+			</ul>
+		</div>
+
+		<div class="footer-col" data-reveal="fade">
+			<h4><Icon name="calendar" /> Event Dates</h4>
+			<p>September 25–26, 2026<br />PSG College of Technology, Coimbatore</p>
+			<a class="map-link" href={CAL_URL} target="_blank" rel="noopener">
+				Add to calendar <Icon name="arrow-right" />
+			</a>
+		</div>
+	</div>
+
+	<div class="container footer-bottom">
+		<span>© 2026 Computational Sciences Association, PSG College of Technology.</span>
+		<span class="footer-theme">Theme — Achronos: Beyond Time</span>
+	</div>
+</footer>
+
+<style>
+	.cta {
+		position: relative;
+		padding: 7rem 0;
+		text-align: center;
+		overflow: hidden;
+		background: linear-gradient(180deg, var(--deep-2), var(--void));
+	}
+
+	.cta-glow {
+		position: absolute;
+		inset: -20%;
+		background: radial-gradient(ellipse 40% 50% at 50% 50%, rgba(201, 154, 63, 0.14), transparent 70%);
+		animation: driftGlowA 22s ease-in-out infinite;
+		pointer-events: none;
+	}
+
+	.cta-ticks {
+		position: absolute;
+		inset: 0;
+		background-image: radial-gradient(1.5px 1.5px at 15% 30%, rgba(238, 200, 122, 0.5), transparent),
+			radial-gradient(1.5px 1.5px at 80% 20%, rgba(110, 231, 176, 0.4), transparent),
+			radial-gradient(1px 1px at 50% 70%, rgba(238, 200, 122, 0.4), transparent),
+			radial-gradient(1.5px 1.5px at 90% 75%, rgba(110, 231, 176, 0.35), transparent),
+			radial-gradient(1px 1px at 25% 85%, rgba(238, 200, 122, 0.4), transparent);
+		pointer-events: none;
+	}
+
+	@keyframes driftGlowA {
+		0%,
+		100% {
+			transform: translate(0, 0) scale(1);
+		}
+		50% {
+			transform: translate(4%, 5%) scale(1.15);
+		}
+	}
+
+	.cta-inner {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1.2rem;
+		max-width: 640px;
+		margin: 0 auto;
+	}
+
+	.cta-actions {
+		display: flex;
+		gap: 1rem;
+		flex-wrap: wrap;
+		justify-content: center;
+		margin-top: 0.4rem;
+	}
+
+	.cta-mark {
+		font-size: 2.4rem;
+		color: var(--gold);
+		animation: spin-slow 20s linear infinite;
+	}
+
+	.site-footer {
+		background: var(--deep-2);
+		border-top: 1px solid var(--line);
+		padding: 4.5rem 0 2rem;
+	}
+
+	.footer-grid {
+		display: grid;
+		grid-template-columns: 1.4fr 1fr 1fr 1fr;
+		gap: 2.5rem;
+	}
+
+	.footer-brand .brand-mark {
+		width: 2.8rem;
+		height: 2.8rem;
+		display: grid;
+		place-items: center;
+		padding: 5px;
+		border: 1px solid var(--gold-dim);
+		border-radius: 50%;
+		margin-bottom: 1rem;
+	}
+
+	.footer-brand .brand-mark img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+
+	.footer-tagline {
+		font-family: var(--font-serif);
+		font-style: italic;
+		color: var(--ink-dim);
+		font-size: 1.02rem;
+		line-height: 1.6;
+		max-width: 26em;
+	}
+
+	.socials {
+		display: flex;
+		gap: 0.8rem;
+		margin-top: 1.2rem;
+	}
+
+	.socials a {
+		width: 2.2rem;
+		height: 2.2rem;
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--line);
+		border-radius: 50%;
+		font-size: 0.7rem;
+		letter-spacing: 0.05em;
+		color: var(--ink-dim);
+		transition: border-color 0.3s, color 0.3s;
+	}
+
+	.socials a:hover {
+		border-color: var(--gold);
+		color: var(--gold-bright);
+	}
+
+	.footer-col h4 {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		font-size: 0.78rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		margin-bottom: 1rem;
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+
+	.footer-col h4 .icon {
+		color: var(--gold);
+		font-size: 1.1rem;
+	}
+
+	.footer-col p {
+		color: var(--ink-dim);
+		font-size: 0.92rem;
+		line-height: 1.6;
+	}
+
+	.map-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		margin-top: 0.8rem;
+		font-size: 0.82rem;
+		color: var(--gold);
+	}
+
+	.contact-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.contact-list li {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.contact-list li span {
+		font-size: 0.92rem;
+		color: var(--ink-dim);
+	}
+
+	.contact-list li em {
+		font-style: normal;
+		font-size: 0.72rem;
+		color: var(--ink-faint);
+	}
+
+	.contact-note {
+		margin-top: 0.4rem;
+		font-size: 0.78rem;
+		color: var(--ink-faint);
+		line-height: 1.5;
+	}
+
+	.footer-bottom {
+		margin-top: 4rem;
+		padding-top: 1.8rem;
+		border-top: 1px solid var(--line);
+		display: flex;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		font-size: 0.75rem;
+		color: var(--ink-faint);
+	}
+
+	.footer-theme {
+		color: var(--gold-dim);
+		font-family: var(--font-serif);
+		font-style: italic;
+	}
+
+	@media (max-width: 900px) {
+		.footer-grid {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.footer-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

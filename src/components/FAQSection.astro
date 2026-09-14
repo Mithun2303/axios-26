@@ -1,0 +1,133 @@
+---
+import Icon from './Icon.astro';
+
+const faqs = [
+	{
+		q: 'Who can participate in AXIOS \'26?',
+		a: "Any undergraduate or postgraduate student from any college is welcome — you don't need to be from PSG Tech to enter the timeline.",
+	},
+	{
+		q: 'Can I take part in more than one event?',
+		a: 'Yes. Participants can register for multiple events as long as the schedules don’t clash — check the timeline on each dossier above before you commit.',
+	},
+	{
+		q: 'Do I need a team, or can I come solo?',
+		a: 'Both are possible. Some arenas like Survivors’ Court, FIFA, and Chess are solo entries; others need a crew of 2 to 5 — team size is listed on every event card.',
+	},
+	{
+		q: 'What do I need to carry on the day?',
+		a: 'Your college ID and the QR code generated at registration. No QR, no entry — so keep it handy on your phone or printed.',
+	},
+	{
+		q: 'Is accommodation available?',
+		a: 'Limited hostel accommodation is available on a first-come, first-serve basis for outstation participants. Reach out to the team early to secure a spot.',
+	},
+];
+---
+
+<section class="faq" id="help">
+	<div class="container faq-grid">
+		<div class="faq-intro" data-reveal="left">
+			<p class="eyebrow">Help</p>
+			<h2 class="section-title">Questions from <em>across time</em></h2>
+			<p class="lede">Answers the crew gets asked most. Still stuck? The contact desk below never closes.</p>
+			<div class="faq-icon-cluster" aria-hidden="true">
+				<Icon name="scroll" />
+				<Icon name="key" />
+			</div>
+		</div>
+
+		<div class="faq-list" data-reveal="right">
+			{faqs.map((f, i) => (
+				<details class="faq-item" open={i === 0}>
+					<summary>
+						<span>{f.q}</span>
+						<Icon name="chevron-down" />
+					</summary>
+					<p>{f.a}</p>
+				</details>
+			))}
+		</div>
+	</div>
+</section>
+
+<style>
+	.faq {
+		padding: 7rem 0;
+	}
+
+	.faq-grid {
+		display: grid;
+		grid-template-columns: 0.8fr 1.2fr;
+		gap: 4rem;
+	}
+
+	.faq-icon-cluster {
+		display: flex;
+		gap: 1.2rem;
+		margin-top: 2.5rem;
+		font-size: 3rem;
+		color: var(--gold-dim);
+	}
+
+	.faq-icon-cluster .icon:last-child {
+		color: color-mix(in srgb, var(--future-2) 60%, var(--gold-dim));
+		margin-top: 1rem;
+	}
+
+	.faq-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+	}
+
+	.faq-item {
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 1.2rem 1.5rem;
+		background: rgba(20, 21, 42, 0.3);
+	}
+
+	.faq-item summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		cursor: pointer;
+		font-family: var(--font-display);
+		font-size: 1.05rem;
+		list-style: none;
+	}
+
+	.faq-item summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.faq-item summary .icon {
+		color: var(--gold);
+		transition: transform 0.35s var(--ease-out);
+		flex: none;
+	}
+
+	.faq-item[open] summary .icon {
+		transform: rotate(180deg);
+	}
+
+	.faq-item p {
+		margin-top: 0.9rem;
+		font-family: var(--font-serif);
+		font-size: 1.05rem;
+		color: var(--ink-dim);
+		line-height: 1.6;
+	}
+
+	@media (max-width: 780px) {
+		.faq-grid {
+			grid-template-columns: 1fr;
+			gap: 2rem;
+		}
+		.faq-icon-cluster {
+			display: none;
+		}
+	}
+</style>
