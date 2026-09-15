@@ -1,5 +1,6 @@
 ---
 import Icon from './Icon.astro';
+import TimeMachine from './TimeMachine.astro';
 import { events, type AxiosEvent } from '../data/events';
 
 interface World {
@@ -19,9 +20,9 @@ const WORLDS: World[] = [
 
 // Depth layout of the tunnel (px along the z-axis, negative = away from the viewer).
 // Each world owns two planes: its name sign, then its event chamber one step deeper.
-// The back wall sits just behind the last chamber so the tunnel visibly ends.
+// Time Machine destination chamber appears after the gaming section completes.
 const STEP = 450;
-const END_DEPTH = STEP * WORLDS.length * 2 + 300;
+const TM_DEPTH = STEP * (WORLDS.length * 2 + 1); // 450 * 7 = 3150
 ---
 
 <section class="cinema" id="arenas">
@@ -32,23 +33,26 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 	</div>
 
 	<div class="cinema-stage" id="cinema-stage">
-		<div class="cinema-tunnel">
-			<!-- four static perspective walls; only their grid texture slides with scroll -->
-			<div class="tunnel-wall tunnel-wall--top" aria-hidden="true"><div class="tunnel-grid" data-axis="y" data-dir="-1"></div></div>
-			<div class="tunnel-wall tunnel-wall--bottom" aria-hidden="true"><div class="tunnel-grid" data-axis="y" data-dir="1"></div></div>
-			<div class="tunnel-wall tunnel-wall--left" aria-hidden="true"><div class="tunnel-grid" data-axis="x" data-dir="-1"></div></div>
-			<div class="tunnel-wall tunnel-wall--right" aria-hidden="true"><div class="tunnel-grid" data-axis="x" data-dir="1"></div></div>
-
-			<!-- the far end of the tunnel -->
-			<div class="tunnel-plane tunnel-end" data-plane="end" data-offset={-END_DEPTH} aria-hidden="true">
-				<svg class="cinema-meander" viewBox="0 0 640 16" preserveAspectRatio="xMidYMid slice">
-					<pattern id="cinema-meander-pattern" width="16" height="16" patternUnits="userSpaceOnUse">
-						<path d="M0 12h4V4h4v8h4V4h4" fill="none" stroke="currentColor" stroke-width="1.2" />
-					</pattern>
-					<rect width="640" height="16" fill="url(#cinema-meander-pattern)" />
-				</svg>
+		<!-- background tunnel: concentric perspective rings & rays (user grid design) -->
+		<div class="cinema-bg" id="cinema-bg" aria-hidden="true">
+			<div class="cinema-tunnel">
+				<div class="tunnel-backwall" aria-hidden="true"></div>
+				<div class="tunnel-rays"></div>
+				{Array.from({ length: 6 }).map((_, i) => (
+					<div class="tunnel-ring" style={`--i:${i}`}></div>
+				))}
 			</div>
+			<div class="cinema-particles"></div>
+			<svg class="cinema-meander" viewBox="0 0 64 16" preserveAspectRatio="xMidYMid slice">
+				<pattern id="cinema-meander-pattern" width="16" height="16" patternUnits="userSpaceOnUse">
+					<path d="M0 12h4V4h4v8h4V4h4" fill="none" stroke="currentColor" stroke-width="1.2" />
+				</pattern>
+				<rect width="64" height="16" fill="url(#cinema-meander-pattern)" />
+			</svg>
+		</div>
 
+		<!-- 3D stage planes container: worlds + timemachine -->
+		<div class="cinema-planes" id="cinema-planes">
 			{WORLDS.map((world, i) => {
 				const worldEvents = events.filter((ev) => ev.category === world.match);
 				return (
@@ -56,7 +60,6 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 						<div class="tunnel-plane" data-plane="word" data-offset={-(STEP * (2 * i + 1))}>
 							<div class="cinema-sign" data-word={world.key}>
 								<h3 class="cinema-word" style={`--accent:${world.accent}`}>{world.label}</h3>
-								<p class="cinema-word-tag">{worldEvents.map((ev) => ev.tag).join(' · ')}</p>
 							</div>
 						</div>
 
@@ -94,6 +97,15 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 					</div>
 				);
 			})}
+
+			<!-- the Time Machine destination portal at the end of the tunnel (emerging from the last square) -->
+			<div class="tunnel-plane tunnel-tm-plane" data-plane="timemachine" data-offset={-TM_DEPTH}>
+				<div class="tunnel-tm-frame" id="tunnel-tm-frame">
+					<div class="tunnel-tm-content">
+						<TimeMachine />
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<!-- fades the whole scene to the void at the end, without touching the 3D context -->
@@ -107,7 +119,7 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 
 	gsap.registerPlugin(ScrollTrigger);
 
-	type PlaneKind = 'word' | 'frame' | 'end';
+	type PlaneKind = 'word' | 'frame' | 'timemachine';
 
 	interface Layer {
 		el: HTMLElement;
@@ -117,11 +129,13 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 	}
 
 	const stage = document.getElementById('cinema-stage');
-	const tunnel = stage?.querySelector<HTMLElement>('.cinema-tunnel') ?? null;
+	const cinemaBg = stage?.querySelector<HTMLElement>('#cinema-bg') ?? null;
 	const veil = stage?.querySelector<HTMLElement>('.cinema-veil') ?? null;
 	const worlds = Array.from(document.querySelectorAll<HTMLElement>('.cinema-world'));
+	const tmFrame = stage?.querySelector<HTMLElement>('#tunnel-tm-frame') ?? null;
+	const tunnelRings = Array.from(stage?.querySelectorAll<HTMLElement>('.tunnel-ring') ?? []);
 
-	if (stage && tunnel && veil && worlds.length > 0) {
+	if (stage && worlds.length > 0) {
 		const mm = gsap.matchMedia();
 
 		mm.add(
@@ -132,11 +146,10 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 			(context) => {
 				const { isDesktop, reduceMotion } = context.conditions as { isDesktop: boolean; reduceMotion: boolean };
 
-				// reduced motion: CSS lays everything out statically, nothing animates
 				if (reduceMotion) return;
 
 				if (!isDesktop) {
-					// lightweight in-flow reveal per world, no pin, no 3D
+					// mobile in-flow reveal per world
 					worlds.forEach((world) => {
 						const word = world.querySelector<HTMLElement>('.cinema-word');
 						const frame = world.querySelector<HTMLElement>('.cinema-frame');
@@ -158,21 +171,31 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 				}
 
 				// ---------------------------------------------------------------------------
-				// Desktop: fly through the tunnel.
+				// Desktop: 3D perspective fly-through into Time Machine enlargement and scrub.
 				//
-				// One scalar, `travel` (px), is scrubbed by scroll. Every plane sits at
-				// z = offset + travel, so the whole stack slides toward the viewer while the
-				// four walls stay put and only their grid texture slides — nothing ever has
-				// to cross the camera plane, which is what made the old version glitch.
-				// Opacity is a pure function of z, so scrubbing backwards is always exact.
+				// Phase 1 (0 -> 2960): Travel down the 3D tunnel corridor past Technical,
+				//   Non-Technical, and Gaming chambers. Time Machine is hidden.
+				// Phase 2 (2960 -> 3700): Time Machine emerges directly from the last square
+				//   (the back wall of the tunnel) at scale 0.18, and zooms forward smoothly
+				//   to 1.0 (full screen), matching Screen Recording 2026-09-11 at 3.56.36 PM.
+				//   The tunnel rings continue flying seamlessly and dissolve away.
+				// Phase 3 (3700 -> 6700): The schedule timeline scrubs through Day 1 & Day 2.
 				// ---------------------------------------------------------------------------
-				const TAIL = 320; // travel-units for the final fade to void
-				const SCROLL_PX_PER_UNIT = 1.9;
+				const SCROLL_PX_PER_UNIT = 1.6;
 
-				const gridSize = parseFloat(getComputedStyle(tunnel).getPropertyValue('--tunnel-grid')) || 160;
-				const grids = Array.from(tunnel.querySelectorAll<HTMLElement>('.tunnel-grid'));
+				// Tunnel rings scrub parameters (from user design)
+				const RING_STEP = 0.55;
+				const RING_PHASE_OFFSET = 0.8;
+				const TUNNEL_TRAVEL_SECONDS = 3.6;
+				const updateTunnel = (progress: number) => {
+					const travel = progress * TUNNEL_TRAVEL_SECONDS;
+					tunnelRings.forEach((ring, i) => {
+						ring.style.animationDelay = `${-(travel + RING_PHASE_OFFSET + i * RING_STEP)}s`;
+					});
+				};
+				updateTunnel(0);
 
-				const layers: Layer[] = Array.from(tunnel.querySelectorAll<HTMLElement>('.tunnel-plane')).map((el) => {
+				const layers: Layer[] = Array.from(stage.querySelectorAll<HTMLElement>('.tunnel-plane')).map((el) => {
 					const kind = (el.dataset.plane ?? 'word') as PlaneKind;
 					return {
 						el,
@@ -183,13 +206,12 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 				});
 				const chambers = layers.filter((l) => l.kind === 'frame');
 				const farthest = Math.min(...layers.map((l) => l.offset));
+				const lastChamberOffset = Math.min(...chambers.map((c) => c.offset)); // -2700 (Gaming)
 
 				const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 				const ramp = (z: number, from: number, to: number) => clamp01((z - from) / (to - from));
 
-				// distant things are dimmer, everything fades as it passes the viewer
 				const alphaAt = (kind: PlaneKind, z: number) => {
-					if (kind === 'end') return 1;
 					const fog = 0.3 + 0.7 * ramp(z, farthest, -700);
 					if (kind === 'word') return fog * ramp(z, farthest, farthest + 500) * (1 - ramp(z, 40, 420));
 					return fog * ramp(z, -850, -420) * (1 - ramp(z, 40, 260));
@@ -197,46 +219,84 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 
 				const state = { travel: 0 };
 
+				const enlargeStart = -lastChamberOffset + 260; // 2960 (after gaming chamber has exited)
+				const enlargeEnd = enlargeStart + 740; // 3700
+				const scrubDuration = 3000;
+				const totalTravel = enlargeEnd + scrubDuration; // 6700
+
 				const render = () => {
 					const travel = state.travel;
+					const enlargeProgress = ramp(travel, enlargeStart, enlargeEnd);
+					const bgAlpha = 1 - ramp(enlargeProgress, 0.2, 0.88);
+
+					// Continuously scrub the tunnel rings without stopping or freezing
+					const tunnelTravelProgress = ramp(travel, 0, enlargeEnd);
+					updateTunnel(tunnelTravelProgress);
+
+					if (cinemaBg) {
+						cinemaBg.style.opacity = String(bgAlpha);
+						cinemaBg.style.visibility = bgAlpha > 0.002 ? 'visible' : 'hidden';
+					}
 
 					for (const layer of layers) {
-						const z = layer.offset + travel;
+						let z = layer.offset + travel;
+
+						// TIME MACHINE: VISIBLE ONLY AFTER GAMING, EMERGING DIRECTLY FROM THE LAST SQUARE
+						if (layer.kind === 'timemachine') {
+							if (travel < enlargeStart) {
+								layer.el.style.opacity = '0';
+								layer.el.style.visibility = 'hidden';
+								layer.el.style.pointerEvents = 'none';
+								layer.el.style.transform = `translate3d(0,0,0px)`;
+								continue;
+							}
+							// Fade in smoothly right inside that last square
+							const tmAlpha = ramp(enlargeProgress, 0, 0.08);
+							layer.el.style.opacity = String(tmAlpha);
+							layer.el.style.visibility = tmAlpha > 0.002 ? 'visible' : 'hidden';
+							layer.el.style.transform = `translate3d(0,0,0px)`;
+							continue;
+						}
+
 						const alpha = alphaAt(layer.kind, z);
 						const style = layer.el.style;
 						style.transform = `translate3d(0,0,${z}px)`;
 						style.opacity = String(alpha);
 						style.visibility = alpha > 0.002 ? 'visible' : 'hidden';
 
-						// event rows step in one after another as the chamber approaches
-						layer.items.forEach((item, i) => {
-							const p = ramp(z, -720 + i * 32, -430 + i * 32);
-							item.style.opacity = String(p);
-							item.style.transform = `translate3d(0,${(1 - p) * 22}px,0)`;
-						});
+						if (layer.kind === 'frame') {
+							layer.items.forEach((item, i) => {
+								const p = ramp(z, -720 + i * 32, -430 + i * 32);
+								item.style.opacity = String(p);
+								item.style.transform = `translate3d(0,${(1 - p) * 22}px,0)`;
+							});
+						}
 					}
 
-					const shift = travel % gridSize;
-					for (const grid of grids) {
-						const d = shift * Number(grid.dataset.dir ?? 1);
-						grid.style.transform = grid.dataset.axis === 'x' ? `translate3d(${d}px,0,0)` : `translate3d(0,${d}px,0)`;
+					// Time Machine zoom from the last square (scale 0.18 -> 1.0)
+					if (tmFrame) {
+						const easeProg = enlargeProgress < 0.5
+							? 2 * enlargeProgress * enlargeProgress
+							: 1 - Math.pow(-2 * enlargeProgress + 2, 2) / 2;
+						const scale = 0.18 + 0.82 * easeProg;
+						tmFrame.style.transform = `scale3d(${scale}, ${scale}, 1)`;
+						tmFrame.style.pointerEvents = enlargeProgress >= 0.98 ? 'auto' : 'none';
+					}
+
+					// Schedule timeline scrub
+					const scrubProgress = ramp(travel, enlargeEnd, totalTravel);
+					if (typeof (window as any).__updateTimeMachine === 'function') {
+						(window as any).__updateTimeMachine(scrubProgress);
 					}
 				};
 
-				// timeline time == travel px: one continuous, linear glide the whole length of
-				// the tunnel — no pauses in front of any chamber. Each chamber still reads
-				// clearly because alphaAt() keeps it at full opacity for a wide band of travel,
-				// not because scroll itself stalls there.
-				const farthestChamberOffset = Math.min(...chambers.map((c) => c.offset));
-				const finalTravel = -farthestChamberOffset + TAIL;
-
 				const tl = gsap.timeline({ onUpdate: render });
-				tl.to(state, { travel: finalTravel, duration: finalTravel, ease: 'none' }, 0);
-				tl.to(veil, { opacity: 1, duration: TAIL, ease: 'none' }, finalTravel - TAIL);
+				tl.to(state, { travel: totalTravel, duration: totalTravel, ease: 'none' }, 0);
 
 				render();
 
-				ScrollTrigger.create({
+				const st = ScrollTrigger.create({
+					id: 'cinema-trigger',
 					animation: tl,
 					trigger: stage,
 					start: 'top top',
@@ -246,14 +306,28 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 					anticipatePin: 1,
 				});
 
-				// leaving desktop: drop every inline style render() wrote
+				// smooth scroll for nav Schedule link
+				const onScheduleClick = (e: MouseEvent) => {
+					e.preventDefault();
+					const cinemaSt = ScrollTrigger.getById('cinema-trigger');
+					if (cinemaSt) {
+						const targetScroll = cinemaSt.start + (enlargeEnd / totalTravel) * (cinemaSt.end - cinemaSt.start);
+						window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+					}
+				};
+				const schedLinks = document.querySelectorAll('a[href="#schedule"]');
+				schedLinks.forEach((l) => l.addEventListener('click', onScheduleClick as EventListener));
+
 				return () => {
 					for (const layer of layers) {
 						layer.el.removeAttribute('style');
 						layer.items.forEach((item) => item.removeAttribute('style'));
 					}
-					grids.forEach((g) => g.removeAttribute('style'));
-					veil.removeAttribute('style');
+					tunnelRings.forEach((r) => r.removeAttribute('style'));
+					cinemaBg?.removeAttribute('style');
+					veil?.removeAttribute('style');
+					tmFrame?.removeAttribute('style');
+					schedLinks.forEach((l) => l.removeEventListener('click', onScheduleClick as EventListener));
 				};
 			}
 		);
@@ -280,21 +354,119 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		position: relative;
 		height: 100vh;
 		overflow: hidden;
-		background: var(--void);
-		--tunnel-persp: 1000px;
-		--tunnel-depth: 3200px;
-		--tunnel-grid: 160px;
-		--tunnel-line: color-mix(in srgb, var(--gold) 26%, transparent);
+		z-index: 2;
+		background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(63, 174, 116, 0.08), transparent 65%), var(--void);
+		perspective: 1400px;
+		--ring-w: min(78vmin, 900px);
 	}
 
-	/* the single 3D context: perspective here, preserve-3d so walls, end and planes
-	   depth-sort against each other instead of painting in DOM order */
+	/* --- background tunnel grid (user design) --- */
+	.cinema-bg {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		overflow: hidden;
+		transition: opacity 0.3s ease-out;
+	}
+
+	/* finite perspective-grid tunnel — fixed 6 rings, capped by solid back wall */
 	.cinema-tunnel {
 		position: absolute;
 		inset: 0;
-		perspective: var(--tunnel-persp);
+		display: grid;
+		place-items: center;
+		perspective: 600px;
+		perspective-origin: 50% 50%;
+	}
+
+	.tunnel-backwall {
+		position: absolute;
+		width: var(--ring-w);
+		aspect-ratio: 4 / 3;
+		transform: translateZ(-820px) scale(0.22);
+		background: radial-gradient(ellipse at center, color-mix(in srgb, var(--gold-dim) 40%, transparent), transparent 72%);
+		border: 1px solid color-mix(in srgb, var(--gold-dim) 55%, transparent);
+		border-radius: 2px;
+		opacity: 0.6;
+	}
+
+	.tunnel-rays {
+		position: absolute;
+		inset: -20%;
+		background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--gold-dim) 55%, transparent) 0deg 0.3deg, transparent 0.3deg 7.5deg);
+		-webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, #000 34%, #000 62%, transparent 92%);
+		mask-image: radial-gradient(circle at 50% 50%, transparent 0%, transparent 8%, #000 34%, #000 62%, transparent 92%);
+		opacity: 0.5;
+	}
+
+	.tunnel-ring {
+		position: absolute;
+		width: var(--ring-w);
+		aspect-ratio: 4 / 3;
+		border: 1px solid var(--gold-dim);
+		box-shadow: 0 0 24px rgba(201, 154, 63, 0.08);
+		opacity: 0;
+		animation: tunnel-fly 8s linear infinite;
+		animation-delay: calc(var(--i) * -1s);
+		animation-play-state: paused;
+	}
+
+	@keyframes tunnel-fly {
+		0% {
+			transform: translateZ(-800px) scale(0.25);
+			opacity: 0;
+			border-color: var(--future-2);
+		}
+		4% {
+			opacity: 0.55;
+		}
+		92% {
+			opacity: 0.4;
+			border-color: var(--gold-dim);
+		}
+		100% {
+			transform: translateZ(280px) scale(1.7);
+			opacity: 0;
+			border-color: var(--gold);
+		}
+	}
+
+	.cinema-particles {
+		position: absolute;
+		inset: 0;
+		opacity: 0.5;
+		background-image:
+			radial-gradient(1.5px 1.5px at 12% 22%, #fff8 50%, transparent),
+			radial-gradient(1.5px 1.5px at 82% 15%, #fff6 50%, transparent),
+			radial-gradient(1px 1px at 32% 68%, #fff9 50%, transparent),
+			radial-gradient(1.5px 1.5px at 62% 40%, #fff5 50%, transparent),
+			radial-gradient(1px 1px at 92% 60%, #fff7 50%, transparent),
+			radial-gradient(1.5px 1.5px at 22% 85%, #fff6 50%, transparent),
+			radial-gradient(1px 1px at 48% 12%, #fff8 50%, transparent),
+			radial-gradient(1.5px 1.5px at 72% 90%, #fff5 50%, transparent);
+	}
+
+	.cinema-meander {
+		position: absolute;
+		bottom: 6%;
+		left: 50%;
+		transform: translateX(-50%);
+		width: min(70vw, 480px);
+		height: 14px;
+		color: var(--gold-dim);
+		opacity: 0.4;
+	}
+
+	/* --- 3D content planes container --- */
+	.cinema-planes {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		perspective: 1000px;
 		perspective-origin: 50% 50%;
 		transform-style: preserve-3d;
+		pointer-events: none;
 	}
 
 	.cinema-veil {
@@ -304,75 +476,6 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		opacity: 0;
 		pointer-events: none;
 	}
-
-	/* --- walls: four viewport-edge planes folded 90° into the depth axis --- */
-	.tunnel-wall {
-		position: absolute;
-		overflow: hidden;
-		background: rgba(255, 255, 255, 0.012);
-	}
-
-	.tunnel-wall--top,
-	.tunnel-wall--bottom {
-		left: 0;
-		width: 100%;
-		height: var(--tunnel-depth);
-	}
-
-	.tunnel-wall--left,
-	.tunnel-wall--right {
-		top: 0;
-		height: 100%;
-		width: var(--tunnel-depth);
-	}
-
-	.tunnel-wall--top {
-		top: 0;
-		transform-origin: 50% 0;
-		transform: rotateX(-90deg);
-	}
-
-	.tunnel-wall--bottom {
-		bottom: 0;
-		transform-origin: 50% 100%;
-		transform: rotateX(90deg);
-	}
-
-	.tunnel-wall--left {
-		left: 0;
-		transform-origin: 0 50%;
-		transform: rotateY(90deg);
-	}
-
-	.tunnel-wall--right {
-		right: 0;
-		transform-origin: 100% 50%;
-		transform: rotateY(-90deg);
-	}
-
-	/* grid texture, oversized by one cell each side so it can slide by up to a cell */
-	.tunnel-grid {
-		position: absolute;
-		inset: calc(var(--tunnel-grid) * -1);
-		background-image:
-			repeating-linear-gradient(to bottom, var(--tunnel-line) 0 1px, transparent 1px var(--tunnel-grid)),
-			repeating-linear-gradient(to right, var(--tunnel-line) 0 1px, transparent 1px var(--tunnel-grid));
-		will-change: transform;
-	}
-
-	/* fog: lines dissolve toward the far end */
-	.tunnel-wall::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		pointer-events: none;
-		background: linear-gradient(var(--fog-dir), transparent 0%, color-mix(in srgb, var(--void) 55%, transparent) 45%, var(--void) 100%);
-	}
-
-	.tunnel-wall--top { --fog-dir: to bottom; }
-	.tunnel-wall--bottom { --fog-dir: to top; }
-	.tunnel-wall--left { --fog-dir: to right; }
-	.tunnel-wall--right { --fog-dir: to left; }
 
 	/* --- planes: viewport-sized sheets, positioned along z by the script --- */
 	.tunnel-plane {
@@ -386,22 +489,45 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		backface-visibility: hidden;
 	}
 
-	.tunnel-end {
-		background:
-			radial-gradient(ellipse 55% 45% at 50% 50%, color-mix(in srgb, var(--gold-dim) 45%, transparent), transparent 72%),
-			var(--void);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold-dim) 55%, transparent);
+	/* --- Time Machine destination portal at the end of the tunnel --- */
+	.tunnel-tm-plane {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+		will-change: transform, opacity;
+		backface-visibility: hidden;
+		opacity: 0;
+		visibility: hidden;
 	}
 
-	.cinema-meander {
-		position: absolute;
-		bottom: 8%;
-		left: 50%;
-		transform: translateX(-50%);
-		width: min(60vw, 480px);
-		height: 14px;
-		color: var(--gold-dim);
-		opacity: 0.5;
+	.tunnel-tm-frame {
+		position: relative;
+		width: 100vw;
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		transform-origin: 50% 50%;
+		will-change: transform;
+		transform: translateZ(0);
+		backface-visibility: hidden;
+		pointer-events: none;
+	}
+
+	.tunnel-tm-content {
+		position: relative;
+		width: 100vw;
+		height: 100vh;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		transform: translateZ(0);
+		backface-visibility: hidden;
 	}
 
 	.cinema-world {
@@ -411,8 +537,7 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		pointer-events: none;
 	}
 
-	/* --- category signs: small plates bolted to the tunnel's edges, each with a one-line
-	   descriptor pulled from that category's event tags --- */
+	/* --- category signs: small plates bolted to the tunnel's edges --- */
 	.cinema-sign {
 		position: absolute;
 		display: flex;
@@ -457,14 +582,14 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		max-width: 100%;
 	}
 
-	/* technical: on the top wall, clear of the fixed nav */
+	/* technical: top edge */
 	.cinema-sign[data-word='technical'] {
 		top: 15%;
 		left: 50%;
 		transform: translate(-50%, -50%);
 	}
 
-	/* non-technical: running down the left wall */
+	/* non-technical: along left side */
 	.cinema-sign[data-word='nontechnical'] {
 		top: 50%;
 		left: 8%;
@@ -483,7 +608,7 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		max-height: 60vh;
 	}
 
-	/* gaming: low on the right */
+	/* gaming: lower right */
 	.cinema-sign[data-word='gaming'] {
 		top: 90%;
 		left: 76%;
@@ -655,19 +780,46 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 		.cinema-stage {
 			height: auto;
 			overflow: visible;
+			perspective: none;
 		}
 
-		.cinema-tunnel {
+		.cinema-bg {
+			display: none;
+		}
+
+		.cinema-planes {
 			position: relative;
 			inset: auto;
 			perspective: none;
 			transform-style: flat;
 		}
 
-		.tunnel-wall,
-		.tunnel-end,
 		.cinema-veil {
 			display: none;
+		}
+
+		.tunnel-tm-plane {
+			position: relative;
+			inset: auto;
+			width: 100%;
+			transform: none !important;
+			opacity: 1 !important;
+			visibility: visible !important;
+			pointer-events: auto;
+			display: block;
+			padding: 2rem 0;
+		}
+
+		.tunnel-tm-frame {
+			width: 100%;
+			height: auto;
+			transform: none !important;
+			pointer-events: auto;
+		}
+
+		.tunnel-tm-content {
+			width: 100%;
+			height: auto;
 		}
 
 		.cinema-world {
@@ -693,7 +845,6 @@ const END_DEPTH = STEP * WORLDS.length * 2 + 300;
 			visibility: visible !important;
 		}
 
-		/* attribute selector so this outranks the per-sign desktop placements above */
 		.cinema-sign[data-word] {
 			position: relative;
 			top: auto;

@@ -51,10 +51,10 @@ const categories: AxiosEvent['category'][] = ['Technical', 'Non Technical', 'Gam
 const DAY_START = 8 * 60;
 const DAY_END = 18 * 60;
 const DAY_RANGE = DAY_END - DAY_START;
-const DAY_COL_WIDTH = 1450;
-const MIN_BLOCK_WIDTH = 108;
-const ROW_H = 64; // px, one sub-row's height inside a lane
-const ROW_GAP = 8; // px, gap between stacked sub-rows in the same lane
+const DAY_COL_WIDTH = 1320;
+const MIN_BLOCK_WIDTH = 75;
+const ROW_H = 34; // px, compact sub-row height so all lanes + header fit comfortably in viewport
+const ROW_GAP = 4; // px, gap between stacked sub-rows in the same lane
 const hours = Array.from({ length: (DAY_END - DAY_START) / 60 + 1 }, (_, i) => DAY_START / 60 + i);
 const fmtHour = (h: number) => `${String(h % 24).padStart(2, '0')}:00`;
 
@@ -98,24 +98,22 @@ const { preview = false } = Astro.props;
 ---
 
 <section class:list={['tm', preview && 'tm-preview']} id={preview ? undefined : 'schedule'} aria-hidden={preview ? 'true' : undefined}>
-	{!preview && (
-		<div class="tm-intro container" data-reveal="fade">
-			<p class="eyebrow">The Schedule</p>
-			<h2 class="section-title">The <em>Time</em> Machine</h2>
-			<p class="lede">Scroll to move through time — two days, ten arenas, mapped minute by minute.</p>
-		</div>
-	)}
-
 	<div class="tm-pin" id={preview ? undefined : 'tm-pin'}>
-		<div class:list={['tm-stage', !preview && 'tm-stage-entering']} id={preview ? undefined : 'tm-stage'}>
+		<div class="tm-stage" id={preview ? undefined : 'tm-stage'}>
+			{!preview && (
+				<div class="tm-intro container" id="tm-intro" data-reveal="fade">
+					<p class="eyebrow">The Schedule</p>
+					<h2 class="section-title">The <em>Time</em> Machine</h2>
+				</div>
+			)}
+
 			<div class="tm-header container">
 				<span class="tm-header-label">Scroll to move through time</span>
 				<span class="tm-readout" id={preview ? undefined : 'tm-readout'}>{days[0]} &middot; {fmtHour(DAY_START / 60)}</span>
 			</div>
 
-			<div class="tm-hand" id={preview ? undefined : 'tm-hand'} aria-hidden="true"></div>
-
 			<div class="tm-viewport">
+				<div class="tm-hand" id={preview ? undefined : 'tm-hand'} aria-hidden="true"></div>
 				<div class="tm-track" id={preview ? undefined : 'tm-track'}>
 					{days.map((day) => (
 						<div class="tm-day" style={`width:${DAY_COL_WIDTH}px`}>
@@ -273,9 +271,6 @@ const { preview = false } = Astro.props;
 
 <script>
 	import { gsap } from 'gsap';
-	import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-	gsap.registerPlugin(ScrollTrigger);
 
 	// scoped to the real instance only: the query excludes .tm-preview, so a second,
 	// inert render of this component elsewhere on the page (see the `preview` prop)
@@ -287,16 +282,23 @@ const { preview = false } = Astro.props;
 	const track = document.getElementById('tm-track');
 	const hand = document.getElementById('tm-hand');
 	const readout = document.getElementById('tm-readout');
+	const intro = document.getElementById('tm-intro');
 
-	// kill the CSS pre-state (see .tm-stage-entering below) as the very first thing this
-	// script does — if anything below throws, the section still ends up at full scale
-	// instead of stuck at 0.32 forever.
-	stage?.classList.remove('tm-stage-entering');
+	// reveal the section's own title/lede only for someone who actually landed here
+	// directly — a nav link or a shared #schedule URL both leave that hash in the
+	// address bar; scrolling down naturally through Events Cinema's tunnel never does.
+	// (CSS hides it by default on desktop; see .tm-intro in the styles below.)
+	const revealIntroIfLinked = () => {
+		if (window.location.hash === '#schedule') intro?.classList.add('tm-intro-visible');
+	};
+	revealIntroIfLinked();
+	window.addEventListener('hashchange', revealIntroIfLinked);
 
 	const DAY_START = 8 * 60;
 	const DAY_RANGE = 600;
-	const DAY_COL_WIDTH = 1450; // must match the frontmatter's DAY_COL_WIDTH
-	const dayLabels = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day-label') ?? []).map((el) => el.textContent || '');
+	const DAY_COL_WIDTH = 1320; // exactly matches frontmatter's DAY_COL_WIDTH
+	const dayLabels = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day-label') ?? []).map((el) => el.textContent?.trim() || '');
+	const dayElements = Array.from(root?.querySelectorAll<HTMLElement>('.tm-day') ?? []);
 	const numDays = Math.max(1, dayLabels.length);
 	// one thin loader-fill per day (queried by index, in day order — same order
 	// .tm-day-label above and the frontmatter's days.map both render in)
@@ -313,46 +315,78 @@ const { preview = false } = Astro.props;
 
 	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	// entrance: the stage starts scaled down — as if it's still the last thing sitting
-	// inside the grid above — and grows to full size as you scroll into it. Scaled on
-	// .tm-stage itself (the sticky element), NOT on `root` or any other ancestor of it:
-	// ScrollTrigger's pin sets the pinned element to position:fixed, and a transform on
-	// an ancestor of a sticky element independently breaks its sticky behaviour. Either
-	// one, with .tm-stage sticky underneath, was the source of the snap/misalignment at
-	// the handoff into the horizontal scrub below. No pin needed here at all — native
-	// sticky already holds .tm-stage in place while its own transform animates.
-	const isDesktop = window.matchMedia('(min-width: 901px)').matches;
-	if (root && stage && !prefersReducedMotion && isDesktop) {
-		ScrollTrigger.create({
-			trigger: root,
-			start: 'top bottom',
-			end: 'top top',
-			scrub: 1,
-			onUpdate: (self) => gsap.set(stage, { scale: gsap.utils.interpolate(0.32, 1, self.progress) }),
-		});
-	} else if (stage) {
-		gsap.set(stage, { clearProps: 'transform' });
-	}
-
 	let scrollDistance = 0;
-	// .tm-track has responsive left padding (clamp(1.25rem, 4vw, 3rem)) that the axis,
-	// loader and blocks all sit inside — measured live rather than duplicated as a magic
-	// number here, so it can't silently drift out of sync with the CSS again. Read once:
-	// it only changes on resize, and measure() below is already called on resize.
-	let trackPaddingLeft = 0;
-	// px offset from the left edge of .tm-track's content box to the left edge of day
-	// i's column — each .tm-day is DAY_COL_WIDTH wide, so day i starts at i * DAY_COL_WIDTH,
-	// plus the track's own left padding.
-	const dayOffsetPx = (i: number) => trackPaddingLeft + i * DAY_COL_WIDTH;
+	let dayOffsets: number[] = [];
+	let totalTimelineSpan = 0;
 
 	const measure = () => {
 		if (!pin || !track) return;
-		const vh = window.innerHeight;
 		const vw = window.innerWidth;
 		scrollDistance = Math.max(0, track.scrollWidth - vw);
-		pin.style.height = `${vh + scrollDistance}px`;
-		trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+		pin.style.height = '100%';
+		dayOffsets = dayElements.map((el) => el.offsetLeft);
+		if (dayElements.length > 0) {
+			const firstOffset = dayOffsets[0] || 0;
+			const lastOffset = dayOffsets[dayOffsets.length - 1] || 0;
+			totalTimelineSpan = (lastOffset + DAY_COL_WIDTH) - firstOffset;
+		} else {
+			totalTimelineSpan = numDays * DAY_COL_WIDTH;
+		}
 	};
+
+	const applyProgress = (progress: number) => {
+		if (!track) return;
+		progress = Math.min(1, Math.max(0, progress));
+
+		const trackOffsetPx = progress * scrollDistance;
+		track.style.transform = `translateX(${-trackOffsetPx}px)`;
+
+		if (dayOffsets.length === 0) measure();
+
+		const firstOffset = dayOffsets[0] || 0;
+		// nowPx in track-local coordinates
+		const nowPx = firstOffset + progress * totalTimelineSpan;
+
+		if (hand) {
+			hand.style.transform = `translateX(${nowPx - trackOffsetPx}px)`;
+		}
+
+		let activeDayIndex = -1;
+		for (let i = 0; i < numDays; i++) {
+			const dayStart = dayOffsets[i] ?? (firstOffset + i * DAY_COL_WIDTH);
+			const dayEnd = dayStart + DAY_COL_WIDTH;
+			const el = loaderByDay[i];
+
+			if (nowPx <= dayStart) {
+				if (el) el.style.width = '0px';
+			} else if (nowPx >= dayEnd) {
+				if (el) el.style.width = `${DAY_COL_WIDTH}px`;
+			} else {
+				// Cursor is inside day i
+				const fill = nowPx - dayStart;
+				if (el) el.style.width = `${fill}px`;
+				activeDayIndex = i;
+				const minuteOfDay = DAY_START + (fill / DAY_COL_WIDTH) * DAY_RANGE;
+				if (readout) {
+					readout.textContent = `${dayLabels[i] || `Day ${i + 1}`} · ${fmt(minuteOfDay)}`;
+				}
+			}
+		}
+
+		// If cursor is in the gap between days (overnight transition)
+		if (activeDayIndex === -1 && readout && numDays > 1) {
+			for (let i = 0; i < numDays - 1; i++) {
+				const dayEnd = (dayOffsets[i] ?? 0) + DAY_COL_WIDTH;
+				const nextStart = dayOffsets[i + 1] ?? (dayEnd + 100);
+				if (nowPx > dayEnd && nowPx < nextStart) {
+					readout.textContent = `${dayLabels[i]} → ${dayLabels[i + 1]} · Overnight`;
+					break;
+				}
+			}
+		}
+	};
+
+	(window as any).__updateTimeMachine = applyProgress;
 
 	const update = () => {
 		if (!pin || !track) return;
@@ -360,50 +394,15 @@ const { preview = false } = Astro.props;
 		const vh = window.innerHeight;
 		const total = rect.height - vh;
 		let progress = total > 0 ? -rect.top / total : 0;
-		progress = Math.min(1, Math.max(0, progress));
-
-		const trackOffsetPx = progress * scrollDistance;
-		track.style.transform = `translateX(${-trackOffsetPx}px)`;
-
-		const totalMinutesScrubbed = progress * DAY_RANGE * numDays;
-		const dayIndex = Math.min(numDays - 1, Math.floor(totalMinutesScrubbed / DAY_RANGE));
-		const minuteOfDay = DAY_START + (totalMinutesScrubbed - dayIndex * DAY_RANGE);
-
-		if (readout) {
-			readout.textContent = `${dayLabels[dayIndex] || `Day ${dayIndex + 1}`} · ${fmt(minuteOfDay)}`;
-		}
-
-		// "now", in the same track-local px the axis/blocks/loader all use: the current
-		// day's column offset plus how far into that day's DAY_COL_WIDTH we've scrubbed.
-		const nowPx = dayOffsetPx(dayIndex) + (minuteOfDay - DAY_START) * (DAY_COL_WIDTH / DAY_RANGE);
-
-		// the hand is drawn in viewport space, so convert track-local "now" to a viewport
-		// x by subtracting the track's current scroll offset — this is what keeps it
-		// exactly over the loader's leading edge and the axis mark for "now" instead of
-		// sweeping independently across the full viewport width.
-		if (hand) {
-			hand.style.transform = `translateX(${nowPx - trackOffsetPx}px)`;
-		}
-
-		// loader fill: each day's bar is clamped to its own [0,1] segment of the global
-		// progress — full once the hand has moved past that whole day, still empty for a
-		// day the hand hasn't reached yet. Uses the same nowPx math as the hand above, so
-		// the fill's right edge and the hand line always land on the same px.
-		for (let i = 0; i < numDays; i++) {
-			const dayProgress = Math.min(1, Math.max(0, totalMinutesScrubbed / DAY_RANGE - i));
-			const el = loaderByDay[i];
-			if (el) el.style.width = `${dayProgress * DAY_COL_WIDTH}px`;
-		}
+		applyProgress(progress);
 	};
 
 	if (!prefersReducedMotion) {
 		measure();
-		update();
-		// driven by GSAP's own ticker rather than a scroll listener firing its own rAF:
-		// one read-and-write per animation frame, in the same frame GSAP is already
-		// ticking, instead of a queue of scroll-event callbacks that can pile up and
-		// race against the entrance scale tween above.
-		gsap.ticker.add(update);
+		applyProgress(0);
+		if (!document.getElementById('cinema-stage')) {
+			gsap.ticker.add(update);
+		}
 		window.addEventListener('resize', () => {
 			measure();
 			update();
@@ -463,8 +462,12 @@ const { preview = false } = Astro.props;
 <style>
 	.tm {
 		position: relative;
-		background: linear-gradient(180deg, var(--deep-2), var(--void) 15%, var(--void) 85%, var(--deep-2));
-		padding-top: 6rem;
+		z-index: 1;
+		background: transparent;
+		padding-top: 0;
+		width: 100%;
+		height: 100%;
+		max-height: 100vh;
 	}
 
 	.tm-intro {
@@ -472,53 +475,88 @@ const { preview = false } = Astro.props;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1.1rem;
-		margin-bottom: 3rem;
+		gap: 0.2rem;
+		margin-bottom: 0.5rem;
+		padding: 0 1rem;
 	}
 
-	/* --- pinned desktop scrub --- */
+	.tm-intro .eyebrow {
+		font-family: var(--font-body);
+		font-size: 0.65rem;
+		letter-spacing: 0.25em;
+		text-transform: uppercase;
+		color: var(--gold-dim);
+		margin: 0;
+	}
+
+	.tm-intro .section-title {
+		font-family: var(--font-display);
+		font-size: clamp(1.2rem, 2.2vw, 1.75rem);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--ink);
+		margin: 0;
+		line-height: 1.1;
+	}
+
+	.tm-intro .section-title em {
+		font-family: var(--font-serif);
+		font-style: italic;
+		color: var(--gold-bright);
+	}
+
+	.tm-intro .lede {
+		font-family: var(--font-body);
+		font-size: 0.72rem;
+		color: var(--ink-faint);
+		margin: 0;
+		max-width: 520px;
+		letter-spacing: 0.02em;
+	}
+
 	.tm-pin {
 		position: relative;
-		height: 400vh;
+		height: 100% !important;
+		max-height: 100% !important;
+		width: 100%;
 	}
 
 	.tm-stage {
-		position: sticky;
-		top: 0;
-		height: 100vh;
+		position: relative;
+		top: auto;
+		height: 100% !important;
+		max-height: 100% !important;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
 		overflow: hidden;
 		transform-origin: 50% 50%;
-	}
-
-	/* pre-state for the entrance scale, present before the deferred script runs so the
-	   stage never flashes full-size then snaps to 0.32. The script removes this class as
-	   its first statement (see the top of the <script> below), so a later error in that
-	   script can't leave the section stuck scaled down. Scoped to match exactly the
-	   conditions the script itself checks before animating. */
-	@media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
-		.tm:not(.tm-preview) .tm-stage-entering {
-			transform: scale(0.32);
-		}
+		transform: translateZ(0);
+		backface-visibility: hidden;
 	}
 
 	/* the preview instance never runs the pin/scrub script above (it has no ids for that
-	   script to find), so it doesn't need — and shouldn't keep — the tall scroll runway or
-	   the sticky pin: both are meaningless without the JS driving them, and left in place
-	   they'd just make an oversized, inert copy sit behind whatever embeds it. */
+	   script to find). It renders cleanly inside EventsCinema's 3D tunnel portal. */
+	.tm-preview {
+		padding-top: 0 !important;
+		background: transparent !important;
+		z-index: 1 !important;
+		pointer-events: none;
+		width: 100%;
+		height: 100%;
+	}
+
 	.tm-preview .tm-pin {
-		height: auto;
+		height: 100%;
+		position: relative;
 	}
 
 	.tm-preview .tm-stage {
-		position: static;
-		height: auto;
-	}
-
-	.tm-preview {
-		pointer-events: none;
+		position: relative;
+		top: auto;
+		height: 100%;
+		width: 100%;
 	}
 
 	.tm-header {
@@ -526,69 +564,86 @@ const { preview = false } = Astro.props;
 		align-items: baseline;
 		justify-content: space-between;
 		width: 100%;
-		margin-bottom: 1.4rem;
+		margin-bottom: 0.45rem;
+		padding: 0 clamp(1.25rem, 4vw, 3rem);
 		font-family: var(--font-display);
 	}
 
 	.tm-header-label {
-		font-size: 0.7rem;
-		letter-spacing: 0.2em;
+		font-size: 0.64rem;
+		letter-spacing: 0.18em;
 		text-transform: uppercase;
 		color: var(--ink-faint);
 	}
 
 	.tm-readout {
-		font-size: 0.95rem;
+		font-size: 0.85rem;
 		letter-spacing: 0.12em;
 		color: var(--gold-bright);
 		font-variant-numeric: tabular-nums;
 	}
 
+	.tm-viewport {
+		position: relative;
+		overflow: hidden;
+	}
+
 	.tm-hand {
 		position: absolute;
-		top: 5.5rem;
-		bottom: 3rem;
+		top: 1.85rem;
+		bottom: 0;
 		width: 2px;
-		background: linear-gradient(180deg, transparent, var(--gold-bright) 12%, var(--gold-bright) 88%, transparent);
+		background: linear-gradient(180deg, transparent, var(--gold-bright) 10%, var(--gold-bright) 90%, transparent);
 		box-shadow: 0 0 14px rgba(238, 200, 122, 0.65), 0 0 28px rgba(238, 200, 122, 0.3);
 		will-change: transform;
 		pointer-events: none;
-		z-index: 4;
+		z-index: 10;
 	}
 
 	.tm-hand::before {
 		content: '';
 		position: absolute;
-		top: -5px;
+		top: -4px;
 		left: 50%;
-		width: 8px;
-		height: 8px;
+		width: 7px;
+		height: 7px;
 		transform: translateX(-50%) rotate(45deg);
 		background: var(--gold-bright);
 		box-shadow: 0 0 10px rgba(238, 200, 122, 0.7);
 	}
 
-	.tm-viewport {
-		overflow: hidden;
-	}
-
 	.tm-track {
 		display: flex;
 		will-change: transform;
-		padding-left: clamp(1.25rem, 4vw, 3rem);
+		padding-left: clamp(2rem, 5vw, 4rem);
+		padding-right: clamp(2rem, 5vw, 4rem);
+		gap: clamp(8rem, 15vw, 15rem);
 	}
 
 	.tm-day {
 		flex: 0 0 auto;
-		padding-right: clamp(2.5rem, 6vw, 5rem);
+		position: relative;
+		padding-right: 0;
+	}
+
+	.tm-day:not(:last-child)::after {
+		content: '';
+		position: absolute;
+		top: 1rem;
+		bottom: 0.5rem;
+		right: calc(-1 * clamp(8rem, 15vw, 15rem) / 2);
+		width: 1px;
+		background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--gold-bright) 22%, transparent) 20%, color-mix(in srgb, var(--gold-bright) 22%, transparent) 80%, transparent);
+		pointer-events: none;
 	}
 
 	.tm-day-label {
 		font-family: var(--font-display-deco);
-		font-size: 1.6rem;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: var(--ink);
-		margin-bottom: 0.9rem;
+		margin-bottom: 0.65rem;
+		letter-spacing: 0.05em;
 	}
 
 	/* relative + absolutely-placed labels (left set inline per hour, matching the same
@@ -598,10 +653,11 @@ const { preview = false } = Astro.props;
 	.tm-axis {
 		position: relative;
 		z-index: 3;
-		height: 1em;
-		padding-bottom: 0.7rem;
+		height: 1.1em;
+		padding-bottom: 0.25rem;
+		margin-bottom: 0.4rem;
 		font-family: var(--font-body);
-		font-size: 0.68rem;
+		font-size: 0.62rem;
 		letter-spacing: 0.04em;
 		color: var(--ink-faint);
 	}
@@ -636,7 +692,7 @@ const { preview = false } = Astro.props;
 	.tm-day-loader {
 		position: relative;
 		height: 2px;
-		margin-bottom: 0.9rem;
+		margin-bottom: 0.45rem;
 		background: var(--line);
 		border-radius: 2px;
 		overflow: visible;
@@ -668,7 +724,7 @@ const { preview = false } = Astro.props;
 	.tm-lanes {
 		display: flex;
 		flex-direction: column;
-		gap: 0.9rem;
+		gap: 0.45rem;
 	}
 
 	.tm-lane {
@@ -690,17 +746,17 @@ const { preview = false } = Astro.props;
 	.tm-lane-label {
 		display: block;
 		font-family: var(--font-body);
-		font-size: 0.62rem;
-		letter-spacing: 0.18em;
+		font-size: 0.55rem;
+		letter-spacing: 0.16em;
 		text-transform: uppercase;
 		color: var(--cat-accent);
 		opacity: 0.85;
-		margin-bottom: 0.4rem;
+		margin-bottom: 0.18rem;
 	}
 
 	.tm-lane-track {
 		position: relative;
-		border-radius: 8px;
+		border-radius: 6px;
 		background-color: rgba(255, 255, 255, 0.015);
 		/* plain single-line gradient tiled by the inline background-size (one line per
 		   hour) with repeat-x — the previous repeating-linear-gradient had a 1px period,
@@ -715,7 +771,7 @@ const { preview = false } = Astro.props;
 		position: absolute;
 		z-index: 1;
 		display: flex;
-		border-radius: 10px;
+		border-radius: 6px;
 		border: 1px solid color-mix(in srgb, var(--cat-accent) 65%, transparent);
 		color: var(--ink);
 		text-align: left;
@@ -723,15 +779,15 @@ const { preview = false } = Astro.props;
 		overflow: hidden;
 		font-family: var(--font-body);
 		isolation: isolate;
-		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 		transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
 	}
 
 	.tm-block:hover,
 	.tm-block:focus-visible {
-		transform: translateY(-3px);
+		transform: translateY(-2px);
 		border-color: var(--cat-accent);
-		box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--cat-accent) 40%, transparent);
+		box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, var(--cat-accent) 40%, transparent);
 	}
 
 	/* layer 1: the "banner" seen through the glass. A saturated, oversized per-category
@@ -777,36 +833,38 @@ const { preview = false } = Astro.props;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		gap: 0.2rem;
+		gap: 0.08rem;
 		width: 100%;
-		padding: 0.55rem 0.75rem;
+		padding: 0.18rem 0.5rem;
 	}
 
 	.tm-block-name {
-		font-size: 0.8rem;
+		font-size: 0.7rem;
 		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+		line-height: 1.15;
 	}
 
 	.tm-block-meta {
-		font-size: 0.66rem;
+		font-size: 0.54rem;
 		color: var(--ink-faint);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		line-height: 1.15;
 	}
 
 	/* multi-sub-row lanes: less vertical room per block, so the meta line is dropped in
 	   markup (see the `compact` check in the frontmatter) and the name centers alone */
 	.tm-block-compact .tm-block-content {
-		padding: 0.4rem 0.65rem;
+		padding: 0.2rem 0.5rem;
 	}
 
 	.tm-block-compact .tm-block-name {
-		font-size: 0.74rem;
+		font-size: 0.7rem;
 	}
 
 	/* --- mobile / reduced-motion fallback --- */
