@@ -1,138 +1,155 @@
 ---
-import '../styles/global.css';
+import "../styles/global.css";
 
 interface Props {
-	title?: string;
-	description?: string;
+  title?: string;
+  description?: string;
 }
 
 const {
-	title = "AXIOS '26 · Achronos — Beyond Time",
-	description = "AXIOS '26 — the third edition of PSG Tech's technical symposium by the Computational Sciences Association. Sep 25–26, 2026. 10 arenas, ₹1,50,000 prize pool. Achronos: where the past inspires, the present challenges, and the future is waiting to be created.",
+  title = "AXIOS '26 · Achronos — Beyond Time",
+  description = "AXIOS '26 — the third edition of PSG Tech's technical symposium by the Computational Sciences Association. Sep 25–26, 2026. 10 arenas, ₹1,50,000 prize pool. Achronos: where the past inspires, the present challenges, and the future is waiting to be created.",
 } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
-		<meta name="description" content={description} />
-		<meta property="og:title" content={title} />
-		<meta property="og:description" content={description} />
-		<meta property="og:image" content="/og-image.png" />
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="theme-color" content="#0d0d0d" />
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	</head>
-	<body>
-		<div id="thread"></div>
-		<div class="grain"></div>
-		<div class="vignette"></div>
-		<slot name="nav" />
-		<slot />
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-		<script>
-			// scroll progress thread
-			const thread = document.getElementById('thread');
-			const setThread = () => {
-				const h = document.documentElement;
-				const scrolled = h.scrollTop;
-				const max = h.scrollHeight - h.clientHeight;
-				if (thread) thread.style.width = `${max > 0 ? (scrolled / max) * 100 : 0}%`;
-			};
-			document.addEventListener('scroll', setThread, { passive: true });
-			setThread();
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@900&display=swap"
+      rel="stylesheet"
+    />
+    <meta property="og:image" content="/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div id="thread"></div>
+    <div class="grain"></div>
+    <div class="vignette"></div>
+    <slot name="nav" />
+    <slot />
 
-			// reveal on scroll
-			const io = new IntersectionObserver(
-				(entries) => {
-					for (const e of entries) {
-						if (e.isIntersecting) {
-							e.target.classList.add('is-in');
-							io.unobserve(e.target);
-						}
-					}
-				},
-				{ threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
-			);
-			document.querySelectorAll('[data-reveal]').forEach((el, i) => {
-				(el as HTMLElement).style.setProperty('--d', `${Math.min((i % 6) * 0.08, 0.4)}s`);
-				io.observe(el);
-			});
+    <script>
+      // scroll progress thread
+      const thread = document.getElementById("thread");
+      const setThread = () => {
+        const h = document.documentElement;
+        const scrolled = h.scrollTop;
+        const max = h.scrollHeight - h.clientHeight;
+        if (thread)
+          thread.style.width = `${max > 0 ? (scrolled / max) * 100 : 0}%`;
+      };
+      document.addEventListener("scroll", setThread, { passive: true });
+      setThread();
 
-			const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // reveal on scroll
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-in");
+              io.unobserve(e.target);
+            }
+          }
+        },
+        { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+      );
+      document.querySelectorAll("[data-reveal]").forEach((el, i) => {
+        (el as HTMLElement).style.setProperty(
+          "--d",
+          `${Math.min((i % 6) * 0.08, 0.4)}s`,
+        );
+        io.observe(el);
+      });
 
-			// generic parallax: elements with data-speed drift opposite scroll
-			// skipped entirely under reduced-motion — elements stay put
-			if (!prefersReducedMotion) {
-				const parallaxEls = Array.from(document.querySelectorAll<HTMLElement>('[data-speed]'));
-				let ticking = false;
-				const applyParallax = () => {
-					const vh = window.innerHeight;
-					for (const el of parallaxEls) {
-						const speed = parseFloat(el.dataset.speed || '0');
-						const rect = el.getBoundingClientRect();
-						const center = rect.top + rect.height / 2 - vh / 2;
-						el.style.transform = `translate3d(0, ${(-center * speed).toFixed(2)}px, 0)`;
-					}
-					ticking = false;
-				};
-				document.addEventListener(
-					'scroll',
-					() => {
-						if (!ticking) {
-							requestAnimationFrame(applyParallax);
-							ticking = true;
-						}
-					},
-					{ passive: true }
-				);
-				applyParallax();
-				window.addEventListener('resize', applyParallax);
-			}
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
 
-			// generic count-up: elements with data-count animate from 0 to the target once
-			// they scroll into view. data-count-prefix / data-count-suffix / data-count-duration optional.
-			const countEls = Array.from(document.querySelectorAll<HTMLElement>('[data-count]'));
-			const formatCount = (el: HTMLElement, value: number) => {
-				const prefix = el.dataset.countPrefix || '';
-				const suffix = el.dataset.countSuffix || '';
-				return `${prefix}${Math.round(value).toLocaleString('en-IN')}${suffix}`;
-			};
-			const animateCount = (el: HTMLElement) => {
-				const target = parseFloat(el.dataset.count || '0');
-				if (prefersReducedMotion) {
-					el.textContent = formatCount(el, target);
-					return;
-				}
-				const duration = parseFloat(el.dataset.countDuration || '1400');
-				const start = performance.now();
-				const step = (now: number) => {
-					const p = Math.min(1, (now - start) / duration);
-					const eased = 1 - Math.pow(1 - p, 3);
-					el.textContent = formatCount(el, target * eased);
-					if (p < 1) requestAnimationFrame(step);
-				};
-				requestAnimationFrame(step);
-			};
-			const countIo = new IntersectionObserver(
-				(entries) => {
-					for (const e of entries) {
-						if (e.isIntersecting) {
-							animateCount(e.target as HTMLElement);
-							countIo.unobserve(e.target);
-						}
-					}
-				},
-				{ threshold: 0.6 }
-			);
-			countEls.forEach((el) => countIo.observe(el));
-		</script>
-	</body>
+      // generic parallax: elements with data-speed drift opposite scroll
+      // skipped entirely under reduced-motion — elements stay put
+      if (!prefersReducedMotion) {
+        const parallaxEls = Array.from(
+          document.querySelectorAll<HTMLElement>("[data-speed]"),
+        );
+        let ticking = false;
+        const applyParallax = () => {
+          const vh = window.innerHeight;
+          for (const el of parallaxEls) {
+            const speed = parseFloat(el.dataset.speed || "0");
+            const rect = el.getBoundingClientRect();
+            const center = rect.top + rect.height / 2 - vh / 2;
+            el.style.transform = `translate3d(0, ${(-center * speed).toFixed(2)}px, 0)`;
+          }
+          ticking = false;
+        };
+        document.addEventListener(
+          "scroll",
+          () => {
+            if (!ticking) {
+              requestAnimationFrame(applyParallax);
+              ticking = true;
+            }
+          },
+          { passive: true },
+        );
+        applyParallax();
+        window.addEventListener("resize", applyParallax);
+      }
+
+      // generic count-up: elements with data-count animate from 0 to the target once
+      // they scroll into view. data-count-prefix / data-count-suffix / data-count-duration optional.
+      const countEls = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-count]"),
+      );
+      const formatCount = (el: HTMLElement, value: number) => {
+        const prefix = el.dataset.countPrefix || "";
+        const suffix = el.dataset.countSuffix || "";
+        return `${prefix}${Math.round(value).toLocaleString("en-IN")}${suffix}`;
+      };
+      const animateCount = (el: HTMLElement) => {
+        const target = parseFloat(el.dataset.count || "0");
+        if (prefersReducedMotion) {
+          el.textContent = formatCount(el, target);
+          return;
+        }
+        const duration = parseFloat(el.dataset.countDuration || "1400");
+        const start = performance.now();
+        const step = (now: number) => {
+          const p = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = formatCount(el, target * eased);
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      };
+      const countIo = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              animateCount(e.target as HTMLElement);
+              countIo.unobserve(e.target);
+            }
+          }
+        },
+        { threshold: 0.6 },
+      );
+      countEls.forEach((el) => countIo.observe(el));
+    </script>
+  </body>
 </html>

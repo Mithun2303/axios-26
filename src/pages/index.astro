@@ -1,36 +1,42 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Nav from '../components/Nav.astro';
-import Hero from '../components/Hero.astro';
-import StatsMarquee from '../components/StatsMarquee.astro';
-import LegacyTimeline from '../components/LegacyTimeline.astro';
-import EventsCinema from '../components/EventsCinema.astro';
-import TimeMachine from '../components/TimeMachine.astro';
-import EventsShowcase from '../components/EventsShowcase.astro';
-import Voices from '../components/Voices.astro';
-import EditorialSpotlight from '../components/EditorialSpotlight.astro';
-import Impact from '../components/Impact.astro';
-import PrizePool from '../components/PrizePool.astro';
-import Sponsors from '../components/Sponsors.astro';
-import TeamSection from '../components/TeamSection.astro';
-import FAQSection from '../components/FAQSection.astro';
-import ContactFooter from '../components/ContactFooter.astro';
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import StatsMarquee from "../components/StatsMarquee.astro";
+import LegacyTimeline from "../components/LegacyTimeline.astro";
+import EventsCinema from "../components/EventsCinema.astro";
+import TimeMachine from "../components/TimeMachine.astro";
+import EventsShowcase from "../components/EventsShowcase.astro";
+import Voices from "../components/Voices.astro";
+import EditorialSpotlight from "../components/EditorialSpotlight.astro";
+import Impact from "../components/Impact.astro";
+import PrizePool from "../components/PrizePool.astro";
+import Sponsors from "../components/Sponsors.astro";
+import TeamSection from "../components/TeamSection.astro";
+import FAQSection from "../components/FAQSection.astro";
+import ContactFooter from "../components/ContactFooter.astro";
 ---
 
 <Layout>
-	<Nav slot="nav" />
-	<Hero />
-	<StatsMarquee />
-	<LegacyTimeline />
-	<EventsCinema />
-	<TimeMachine />
-	<EventsShowcase />
-	<!-- <Voices /> -->
-	<EditorialSpotlight />
-	<Impact />
-	<PrizePool />
-	<Sponsors />
-	<TeamSection />
-	<FAQSection />
-	<ContactFooter />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@900&display=swap"
+    rel="stylesheet"
+  />
+  <Nav slot="nav" />
+  <Hero />
+  <StatsMarquee />
+  <LegacyTimeline />
+  <EventsCinema />
+  <TimeMachine />
+  <EventsShowcase />
+  <!-- <Voices /> -->
+  <EditorialSpotlight />
+  <Impact />
+  <PrizePool />
+  <Sponsors />
+  <TeamSection />
+  <FAQSection />
+  <ContactFooter />
 </Layout>
