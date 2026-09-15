@@ -163,8 +163,13 @@ const REG_URL = "https://proleap.ewhizard.tech/join/EvB_iLQ2bm";
         </span> -->
 
         <img
+          class="hero-logo-engraved"
           src="/assets/Engraved Logo.png"
-          style="height:25vh; animation: pulse-glow 3.2s ease-in-out infinite;"
+          alt="AXIOS '26"
+          width="2171"
+          height="724"
+          loading="eager"
+          decoding="async"
         />
       </span>
     </h1>
@@ -614,17 +619,59 @@ const REG_URL = "https://proleap.ewhizard.tech/join/EvB_iLQ2bm";
   }
 
   .line1 {
-    font-family: "Cinzel", serif !important;
-    font-weight: 700 !important;
-    font-style: normal;
-
-    font-size: clamp(3.2rem, 13vw, 9rem);
-
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
     line-height: 1;
+    margin: 0.25rem auto 0;
+  }
 
-    letter-spacing: 0.02em;
+  .hero-logo-engraved {
+    display: block;
+    width: 100%;
+    max-width: min(840px, 88vw);
+    height: auto;
+    max-height: clamp(80px, 22vh, 230px);
+    object-fit: contain;
+    aspect-ratio: 2171 / 724;
+    margin: 0 auto;
+    filter: drop-shadow(0 0 32px rgba(201, 154, 63, 0.4))
+      drop-shadow(0 0 10px rgba(238, 200, 122, 0.35));
+    animation: pulse-glow 3.2s ease-in-out infinite;
+    pointer-events: none;
+    user-select: none;
+  }
 
-    white-space: nowrap;
+  @media (max-width: 1024px) {
+    .hero-logo-engraved {
+      max-width: min(640px, 86vw);
+      max-height: clamp(75px, 20vh, 180px);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-logo-engraved {
+      max-width: min(480px, 88vw);
+      max-height: clamp(65px, 18vh, 140px);
+      filter: drop-shadow(0 0 20px rgba(201, 154, 63, 0.35))
+        drop-shadow(0 0 6px rgba(238, 200, 122, 0.3));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-logo-engraved {
+      max-width: 90vw;
+      max-height: clamp(55px, 15vh, 110px);
+    }
+  }
+
+  @media (max-height: 600px) {
+    .hero-logo-engraved {
+      max-height: 18vh;
+      max-width: min(450px, 75vw);
+    }
   }
 
   .odo-letter,
