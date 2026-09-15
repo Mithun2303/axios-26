@@ -8,6 +8,7 @@ const chapters = [
 		year: '2024',
 		title: 'The First Spark',
 		icon: 'flask',
+		img:"/assets/axios24.png",
 		body: "The Computational Sciences Association lights the first arena. A handful of events, a single day, and a question that still drives every edition since: what happens when curiosity is given a stage?",
 	},
 	{
@@ -16,6 +17,7 @@ const chapters = [
 		year: '2025',
 		title: 'The Signal Grows',
 		icon: 'satellite',
+		img:"/assets/axios25.png",
 		body: 'Word travels. Participants cross district lines, then state lines — 3,200 minds, 40 colleges, one weekend. What began as a symposium starts to feel like a gathering point.',
 	},
 	{
@@ -24,6 +26,7 @@ const chapters = [
 		year: '2026',
 		title: 'Achronos — Now',
 		icon: 'hourglass',
+		img:"/assets/axios26.png",
 		body: "AXIOS '26 opens ten arenas across two days at PSG Tech — technical, strategic, and competitive — with a ₹1,50,000 prize pool on the line. This is the chapter you're standing in.",
 		now: true,
 	},
@@ -33,6 +36,7 @@ const chapters = [
 		year: null,
 		title: 'Beyond',
 		icon: 'infinity',
+		img:"/assets/future.png",
 		body: 'Great ideas never go out of date. What is solved here becomes the footnote in someone else’s breakthrough, years from now. The timeline does not end at the closing ceremony — it opens outward.',
 	},
 ];
@@ -83,7 +87,9 @@ const chapters = [
 				{chapters.map((c) => (
 					<article class:list={['chapter', { now: c.now }]}>
 						<span class="chapter-num"><span class="chapter-greek" lang="el">{c.greek}&prime;</span> {c.num}</span>
-						<div class="chapter-icon"><Icon name={c.icon} /></div>
+						<div class="chapter-icon">
+							<img src={`${c.img}`} alt={c.title} style="width: 100%; height: 100%; object-fit: cover;"/>
+						</div>
 						{c.year ? (
 							<div class="chapter-year" data-year={c.year} aria-label={c.year}>
 								{c.year.split('').map(() => (
@@ -387,17 +393,17 @@ const chapters = [
 		display: grid;
 		place-items: center;
 		color: var(--gold);
-		border: 1px solid var(--gold-dim);
+		/* border: 1px solid var(--gold-dim); */
 		border-radius: 50%;
 		font-size: 1.4rem;
 		margin-bottom: 0.4rem;
 	}
 
-	.chapter.now .chapter-icon {
+	/* .chapter.now .chapter-icon {
 		color: var(--void);
 		background: linear-gradient(120deg, var(--gold), var(--future));
 		border-color: transparent;
-	}
+	} */
 
 	.chapter h3 {
 		font-size: 1.5rem;

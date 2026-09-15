@@ -5,7 +5,6 @@ const links = [
 	{ href: '#legacy', label: 'Legacy' },
 	{ href: '#schedule', label: 'Schedule' },
 	{ href: '#lineup', label: 'Lineup' },
-	{ href: '#voices', label: 'Voices' },
 	{ href: '#prizes', label: 'Prizes' },
 	{ href: '#sponsors', label: 'Sponsors' },
 	{ href: '#help', label: 'Help' },
@@ -15,12 +14,23 @@ const links = [
 <header class="nav" id="site-nav">
 	<div class="nav-inner container">
 		<a href="#top" class="brand">
-			<span class="brand-mark" aria-hidden="true">
+			<!-- <span class="brand-mark" aria-hidden="true">
 				<img src="/logo-chronos-mark.png" alt="" />
+			</span> -->
+
+			<span class="brand-logos">
+				<img
+					class="brand-logo"
+					src="/assets/psg-logo.png"
+					alt="AXIOS"
+				/>
+				<img
+					class="brand-logo"
+					src="/assets/csa-logo.png"
+					alt="'26"
+				/>
 			</span>
-			<span class="brand-text">
-				<strong>AXIOS</strong><span>'26</span>
-			</span>
+
 			<span class="brand-status" aria-hidden="true"><i class="led led-on"></i>sys // online</span>
 		</a>
 
@@ -130,16 +140,18 @@ const links = [
 		animation: spin-slow 24s linear infinite;
 	}
 
-	.brand-text strong {
-		letter-spacing: 0.02em;
-		font-size: 1.1rem;
-		font-weight: 700;
+	/* Two images side by side */
+	.brand-logos {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
 	}
 
-	.brand-text span {
-		color: var(--gold);
-		margin-left: 0.25em;
-		font-family: var(--font-mono);
+	.brand-logo {
+		display: block;
+		height: 2.5rem;
+		width: auto;
+		object-fit: contain;
 	}
 
 	.brand-status {
